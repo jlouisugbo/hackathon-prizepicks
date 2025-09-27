@@ -76,7 +76,7 @@ export class PriceEngine {
       // Log significant price movements
       const changePercent = Math.abs(change / oldPrice) * 100;
       if (changePercent > 5) {
-        console.log(`📈 ${player.name}: ${change > 0 ? '+' : ''}${changePercent.toFixed(2)}% to $${roundedPrice}`);
+        console.log(`📈 ${player.name}: ${change > 0 ? '+' : '-'}${changePercent.toFixed(2)}% from $${oldPrice.toFixed(2)} to $${roundedPrice.toFixed(2)}`);
       }
     });
   }
