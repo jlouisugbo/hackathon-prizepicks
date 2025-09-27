@@ -1,7 +1,7 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { getPlayers, getPortfolios, getTrades, addTrade, portfolios, players } from '../data/mockData';
-import { ApiResponse, Trade, TradeRequest, Portfolio } from '../../../shared/src/types';
+import { ApiResponse, Trade, TradeRequest, Portfolio } from '../types';
 
 const router = express.Router();
 

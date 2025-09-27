@@ -1,4 +1,4 @@
-import { Player, User, Portfolio, Trade, LeaderboardEntry, LiveGame, PricePoint } from '../../../shared/src/types';
+import { Player, User, Portfolio, Trade, LeaderboardEntry, LiveGame, PricePoint } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 // Global data stores

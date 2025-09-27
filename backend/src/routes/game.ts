@@ -1,6 +1,6 @@
 import express from 'express';
 import { getCurrentGame } from '../data/mockData';
-import { ApiResponse, LiveGame } from '../../../shared/src/types';
+import { ApiResponse, LiveGame } from '../types';
 
 const router = express.Router();
 

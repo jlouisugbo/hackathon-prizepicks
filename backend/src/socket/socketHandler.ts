@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io';
-import { SocketEvents, ChatMessage, NotificationData } from '../../../shared/src/types';
+import { SocketEvents, ChatMessage, NotificationData } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 interface ConnectedUser {

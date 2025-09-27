@@ -13,7 +13,7 @@ import {
   broadcastGameEvent,
   broadcastMarketData
 } from './socketHandler';
-import { GameEvent, FlashMultiplier, MarketData } from '../../../shared/src/types';
+import { GameEvent, FlashMultiplier, MarketData } from '../types';
 
 // Game simulation state
 let simulationInterval: NodeJS.Timeout | null = null;

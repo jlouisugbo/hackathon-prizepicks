@@ -1,6 +1,6 @@
 import express from 'express';
 import { getPlayers } from '../data/mockData';
-import { ApiResponse, Player } from '../../../shared/src/types';
+import { ApiResponse, Player } from '../types';
 
 const router = express.Router();
 
