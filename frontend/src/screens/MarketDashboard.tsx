@@ -30,7 +30,7 @@ import { useSocket } from '../context/SocketContext';
 import { useGame } from '../context/GameContext';
 import { theme } from '../theme/theme';
 import { formatCurrency, formatPercent } from '../utils/formatters';
-import { Player, TradeRequest } from '../../../../shared/src/types';
+import { Player, TradeRequest } from '@player-stock-market/shared';
 
 const { width } = Dimensions.get('window');
 
@@ -68,7 +68,7 @@ export default function MarketDashboard() {
           visible: true,
           multiplier: multiplierData.multiplier,
           playerName: player.name,
-          eventType: multiplierData.eventType || 'big_play',
+          eventType: 'big_play',
         });
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       }
@@ -106,7 +106,7 @@ export default function MarketDashboard() {
       await refreshPortfolio();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      Alert.alert('Trade Failed', error.message || 'An error occurred');
+      Alert.alert('Trade Failed', error instanceof Error ? error.message : 'An error occurred');
     }
   };
 
@@ -193,15 +193,15 @@ export default function MarketDashboard() {
                 </Text>
                 <View style={styles.dailyChangeRow}>
                   <Ionicons
-                    name={portfolio?.todaysPL >= 0 ? 'trending-up' : 'trending-down'}
+                    name={(portfolio?.todaysPL || 0) >= 0 ? 'trending-up' : 'trending-down'}
                     size={18}
-                    color={portfolio?.todaysPL >= 0 ? theme.colors.bullish : theme.colors.bearish}
+                    color={(portfolio?.todaysPL || 0) >= 0 ? theme.colors.bullish : theme.colors.bearish}
                   />
                   <Text style={[
                     styles.dailyChange,
-                    { color: portfolio?.todaysPL >= 0 ? theme.colors.bullish : theme.colors.bearish }
+                    { color: (portfolio?.todaysPL || 0) >= 0 ? theme.colors.bullish : theme.colors.bearish }
                   ]}>
-                    {portfolio?.todaysPL >= 0 ? '+' : ''}{formatCurrency(portfolio?.todaysPL || 0)} today
+                    {(portfolio?.todaysPL || 0) >= 0 ? '+' : ''}{formatCurrency(portfolio?.todaysPL || 0)} today
                   </Text>
                 </View>
               </View>

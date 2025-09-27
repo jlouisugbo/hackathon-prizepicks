@@ -19,6 +19,7 @@ import SeasonPortfolioScreen from './src/screens/SeasonPortfolioScreen';
 import LiveTradingScreen from './src/screens/LiveTradingScreen';
 import LeaderboardScreen from './src/screens/LeaderboardScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import MarketDashboard from './src/screens/MarketDashboard';
 
 // Theme
 import { theme } from './src/theme/theme';
@@ -36,6 +37,9 @@ function TabNavigator() {
             case 'Portfolio':
               iconName = focused ? 'wallet' : 'wallet-outline';
               break;
+            case 'Market':
+              iconName = focused ? 'trending-up' : 'trending-up-outline';
+              break;
             case 'Live Trading':
               iconName = focused ? 'flash' : 'flash-outline';
               break;
@@ -46,7 +50,7 @@ function TabNavigator() {
               iconName = focused ? 'person' : 'person-outline';
               break;
             default:
-              iconName = 'circle';
+              iconName = 'ellipse-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -70,6 +74,14 @@ function TabNavigator() {
         options={{
           title: 'Portfolio',
           headerTitle: 'Season Portfolio'
+        }}
+      />
+      <Tab.Screen
+        name="Market"
+        component={MarketDashboard}
+        options={{
+          title: 'Market',
+          headerTitle: 'Player Market'
         }}
       />
       <Tab.Screen

@@ -3,6 +3,7 @@
     "name": "Player Stock Market",
     "slug": "player-stock-market",
     "version": "1.0.0",
+    "main": "index.js",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "splash": {

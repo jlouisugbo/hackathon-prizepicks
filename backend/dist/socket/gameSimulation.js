@@ -11,11 +11,13 @@ let simulationInterval = null;
 let flashMultiplierInterval = null;
 let gameEventInterval = null;
 let priceUpdateInterval = null;
+let scoreUpdateInterval = null;
 // Configuration
 const PRICE_UPDATE_INTERVAL = 8000; // 8 seconds
 const FLASH_MULTIPLIER_CHANCE = 0.15; // 15% chance per interval
 const GAME_EVENT_INTERVAL = 45000; // 45 seconds
 const MARKET_DATA_INTERVAL = 30000; // 30 seconds
+const SCORE_UPDATE_INTERVAL = 12000; // 12 seconds for score updates
 // Active flash multipliers
 const activeFlashMultipliers = new Map();
 // Pre-scripted game events for demo
@@ -92,6 +94,8 @@ function startGameSimulation(io) {
     startGameEvents(io);
     // Start market data broadcasting
     startMarketDataBroadcast(io);
+    // Start live score updates
+    startScoreUpdates(io);
     console.log('✅ Game simulation started');
 }
 function startPriceUpdates(io) {
@@ -316,6 +320,67 @@ function generateRandomGameEvent(io) {
     const changePercent = ((newPrice - oldPrice) / oldPrice) * 100;
     (0, socketHandler_1.broadcastPriceUpdate)(io, randomPlayer.id, newPrice, newPrice - oldPrice, changePercent);
 }
+function startScoreUpdates(io) {
+    scoreUpdateInterval = setInterval(() => {
+        const currentGame = (0, mockData_1.getCurrentGame)();
+        if (!currentGame || !currentGame.isActive)
+            return;
+        // Randomly decide which team scores (slightly favor home team)
+        const homeTeamScores = Math.random() < 0.52; // 52% chance home team scores
+        // Determine points scored (1, 2, or 3 points with realistic probabilities)
+        let pointsScored;
+        const rand = Math.random();
+        if (rand < 0.65)
+            pointsScored = 2; // 65% chance for 2 points (regular basket)
+        else if (rand < 0.90)
+            pointsScored = 3; // 25% chance for 3 points
+        else
+            pointsScored = 1; // 10% chance for 1 point (free throw)
+        // Update scores
+        const newHomeScore = homeTeamScores ? currentGame.homeScore + pointsScored : currentGame.homeScore;
+        const newAwayScore = !homeTeamScores ? currentGame.awayScore + pointsScored : currentGame.awayScore;
+        // Advance game time randomly (30 seconds to 2 minutes)
+        const timeAdvance = Math.floor(Math.random() * 90) + 30; // 30-120 seconds
+        const newGameTime = advanceGameTime(currentGame.timeRemaining, timeAdvance);
+        let newQuarter = currentGame.quarter;
+        // Check if quarter should advance
+        if (isQuarterOver(newGameTime.time)) {
+            newQuarter = Math.min(4, currentGame.quarter + 1);
+            newGameTime.time = '12:00'; // Reset time for new quarter
+        }
+        // Update game state
+        (0, mockData_1.updateGameScore)(newHomeScore, newAwayScore, newQuarter, newGameTime.time);
+        // Broadcast score update
+        io.to('general').emit('game_score_update', {
+            homeScore: newHomeScore,
+            awayScore: newAwayScore,
+            quarter: newQuarter,
+            timeRemaining: newGameTime.time,
+            lastScore: {
+                team: homeTeamScores ? 'home' : 'away',
+                points: pointsScored,
+                teamName: homeTeamScores ? currentGame.homeTeam : currentGame.awayTeam
+            }
+        });
+        console.log(`🏀 Score Update: ${currentGame.awayTeam} ${newAwayScore} - ${newHomeScore} ${currentGame.homeTeam} | Q${newQuarter} ${newGameTime.time}`);
+    }, SCORE_UPDATE_INTERVAL);
+}
+// Helper function to advance game time
+function advanceGameTime(currentTime, secondsToAdvance) {
+    const [minutes, seconds] = currentTime.split(':').map(Number);
+    const totalSeconds = minutes * 60 + seconds;
+    const newTotalSeconds = Math.max(0, totalSeconds - secondsToAdvance);
+    const newMinutes = Math.floor(newTotalSeconds / 60);
+    const newSeconds = newTotalSeconds % 60;
+    return {
+        time: `${newMinutes}:${newSeconds.toString().padStart(2, '0')}`
+    };
+}
+// Helper function to check if quarter is over
+function isQuarterOver(timeString) {
+    const [minutes, seconds] = timeString.split(':').map(Number);
+    return minutes === 0 && seconds === 0;
+}
 function startMarketDataBroadcast(io) {
     setInterval(() => {
         const playersList = (0, mockData_1.getPlayers)();
@@ -365,6 +430,10 @@ function stopGameSimulation() {
     if (gameEventInterval) {
         clearInterval(gameEventInterval);
         gameEventInterval = null;
+    }
+    if (scoreUpdateInterval) {
+        clearInterval(scoreUpdateInterval);
+        scoreUpdateInterval = null;
     }
     // Clear active flash multipliers
     activeFlashMultipliers.clear();

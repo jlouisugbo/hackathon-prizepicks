@@ -35,7 +35,7 @@ const io = new socket_io_1.Server(server, {
     }
 });
 exports.io = io;
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || '3002', 10);
 // Middleware
 app.use((0, cors_1.default)({
     origin: process.env.CORS_ORIGIN || "http://localhost:19006",

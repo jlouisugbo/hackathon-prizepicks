@@ -165,7 +165,7 @@ function startPriceUpdates(io: Server) {
       }
     });
 
-  }, PRICE_UPDATE_INTERVAL);
+  }, PRICE_UPDATE_INTERVAL) as unknown as NodeJS.Timeout;
 }
 
 /*
@@ -284,7 +284,7 @@ function startGameEvents(io: Server) {
       }
     }
 
-  }, GAME_EVENT_INTERVAL);
+  }, GAME_EVENT_INTERVAL) as unknown as NodeJS.Timeout;
 }
 
 function triggerGameEvent(io: Server, eventTemplate: Omit<GameEvent, 'id' | 'timestamp'>) {
@@ -429,7 +429,7 @@ function startScoreUpdates(io: Server) {
 
     console.log(`🏀 Score Update: ${currentGame.awayTeam} ${newAwayScore} - ${newHomeScore} ${currentGame.homeTeam} | Q${newQuarter} ${newGameTime.time}`);
 
-  }, SCORE_UPDATE_INTERVAL);
+  }, SCORE_UPDATE_INTERVAL) as unknown as NodeJS.Timeout;
 }
 
 // Helper function to advance game time

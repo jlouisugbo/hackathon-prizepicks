@@ -7,10 +7,10 @@ import {
   FlatList,
   Alert,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import {
   Card,
   Title,
-  Subtitle,
   Text,
   Button,
   FAB,
@@ -24,9 +24,10 @@ import { useSocket } from '../context/SocketContext';
 import { useGame } from '../context/GameContext';
 import { theme } from '../theme/theme';
 import { formatCurrency, formatPercent } from '../utils/formatters';
-import { Holding } from '../../../../shared/src/types';
+import { Holding } from '@player-stock-market/shared';
 
 export default function SeasonPortfolioScreen() {
+  const navigation = useNavigation();
   const { portfolio, loading, error, refreshPortfolio, updateHoldingPrice } = usePortfolio();
   const { priceUpdates, isConnected, joinRoom } = useSocket();
   const { players } = useGame();
@@ -116,12 +117,12 @@ export default function SeasonPortfolioScreen() {
       <Card.Content style={styles.emptyContent}>
         <Ionicons name="wallet-outline" size={64} color={theme.colors.outline} />
         <Title style={styles.emptyTitle}>No Holdings Yet</Title>
-        <Subtitle style={styles.emptySubtitle}>
+        <Text style={styles.emptySubtitle}>
           Start your season portfolio by investing in NBA players
-        </Subtitle>
+        </Text>
         <Button
           mode="contained"
-          onPress={() => Alert.alert('Coming Soon', 'Player selection screen coming soon!')}
+          onPress={() => navigation.navigate('Market' as never)}
           style={styles.emptyButton}
         >
           Browse Players
@@ -248,7 +249,7 @@ export default function SeasonPortfolioScreen() {
       <FAB
         icon="plus"
         style={styles.fab}
-        onPress={() => Alert.alert('Coming Soon', 'Add investment feature coming soon!')}
+        onPress={() => navigation.navigate('Market' as never)}
         label="Invest"
       />
     </View>

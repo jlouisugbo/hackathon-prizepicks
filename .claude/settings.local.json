@@ -32,7 +32,21 @@
       "Bash(curl -s -X POST \"http://localhost:3002/api/auth/register\" -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"test@example.com\"\",\"\"password\"\":\"\"test123\"\",\"\"username\"\":\"\"TestUser\"\"}\")",
       "Bash(curl -s -X POST \"http://localhost:3002/api/auth/register\" -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"testuser@example.com\"\",\"\"password\"\":\"\"test123\"\",\"\"username\"\":\"\"TestUser\"\"}\")",
       "Bash(curl:*)",
-      "Bash(npm install)"
+      "Bash(npm install)",
+      "Bash(Remove-Item -Recurse -Force node_modules)",
+      "Bash(railway --version)",
+      "Bash(railway status:*)",
+      "Bash(railway service:*)",
+      "Bash(railway variables set:*)",
+      "Bash(railway variables:*)",
+      "Bash(railway up:*)",
+      "Bash(railway logs:*)",
+      "Bash(npm run install:all:*)",
+      "Bash(npm run backend:dev:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run frontend:start:*)",
+      "Bash(expo start:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

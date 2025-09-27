@@ -30,7 +30,7 @@ export class PriceEngine {
 
     this.updateInterval = setInterval(() => {
       this.updatePrices(players);
-    }, intervalMs);
+    }, intervalMs) as unknown as NodeJS.Timeout;
   }
 
   stopPriceUpdates() {

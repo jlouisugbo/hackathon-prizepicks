@@ -97,12 +97,23 @@ router.post('/demo-login', async (req, res) => {
             });
         }
         // Create demo user
+        const userId = `demo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const user = {
-            id: `demo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: userId,
             email: email,
             username: username || email.split('@')[0],
             createdAt: new Date().toISOString()
         };
+        // Import and create portfolio for demo user
+        const { createDemoPortfolio, addDemoUser } = require('../data/mockData');
+        addDemoUser({
+            ...user,
+            password_hash: '',
+            total_portfolio_value: 10000,
+            season_rank: 0,
+            live_rank: 0
+        });
+        createDemoPortfolio(userId);
         const token = authService_1.authService.generateToken(user);
         const response = {
             success: true,

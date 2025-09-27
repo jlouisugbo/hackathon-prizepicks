@@ -102,6 +102,8 @@ class AuthService {
                 season_rank: 0,
                 live_rank: 0
             });
+            // Create initial portfolio for demo user
+            (0, mockData_1.createDemoPortfolio)(user.id);
             const token = this.generateToken(user);
             return { user, token };
         }

@@ -1,18 +1,28 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.initializeSupabaseTables = exports.TABLES = exports.supabase = exports.isSupabaseConfigured = void 0;
+exports.initializeSupabaseTables = exports.TABLES = exports.supabaseAdmin = exports.supabase = exports.isSupabaseConfigured = void 0;
 const supabase_js_1 = require("@supabase/supabase-js");
-// Supabase configuration
+// Supabase configuration - using new publishable and secret keys
 const supabaseUrl = process.env.SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || 'placeholder-key';
-exports.isSupabaseConfigured = !!(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY);
+const supabasePublishableKey = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || 'placeholder-key';
+const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
+exports.isSupabaseConfigured = !!(process.env.SUPABASE_URL && (process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY));
 if (!exports.isSupabaseConfigured) {
     console.warn('⚠️  Supabase credentials missing. Running in development mode with mock data.');
 }
 else {
     console.log('✅ Supabase credentials found. Connecting to database...');
+    console.log('🔑 Using publishable key for client operations');
+    if (supabaseSecretKey) {
+        console.log('🔐 Secret key available for admin operations');
+    }
 }
-exports.supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey);
+// Use publishable key for standard operations
+exports.supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabasePublishableKey);
+// Create admin client with secret key for privileged operations
+exports.supabaseAdmin = supabaseSecretKey
+    ? (0, supabase_js_1.createClient)(supabaseUrl, supabaseSecretKey)
+    : null;
 // Database table names
 exports.TABLES = {
     USERS: 'users',

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllDemoUsers = exports.getDemoOnlineUsersCount = exports.updateDemoUserSession = exports.getDemoUserByEmail = exports.getDemoUser = exports.addDemoUser = exports.getUserLimitOrders = exports.getLimitOrders = exports.checkLimitOrders = exports.createLimitOrder = exports.limitOrders = exports.syncPortfoliosWithPrices = exports.executeTradeOrder = exports.updateGameScore = exports.addTrade = exports.updatePlayerPrice = exports.getCurrentGame = exports.getTrades = exports.getPortfolios = exports.getUsers = exports.getPlayers = exports.currentGame = exports.trades = exports.portfolios = exports.users = exports.players = void 0;
+exports.createDemoPortfolio = exports.getAllDemoUsers = exports.getDemoOnlineUsersCount = exports.updateDemoUserSession = exports.getDemoUserByEmail = exports.getDemoUser = exports.addDemoUser = exports.getUserLimitOrders = exports.getLimitOrders = exports.checkLimitOrders = exports.createLimitOrder = exports.limitOrders = exports.syncPortfoliosWithPrices = exports.executeTradeOrder = exports.updateGameScore = exports.addTrade = exports.updatePlayerPrice = exports.getCurrentGame = exports.getTrades = exports.getPortfolios = exports.getUsers = exports.getPlayers = exports.currentGame = exports.trades = exports.portfolios = exports.users = exports.players = void 0;
 exports.initializeMockData = initializeMockData;
 const uuid_1 = require("uuid");
 // Global data stores
@@ -171,7 +171,7 @@ function initializeMockData() {
             avgHoldTime: Math.random() * 7 + 1 // 1-8 days
         }
     }));
-    // Add demo user for testing
+    // Add demo users for testing
     exports.users.push({
         id: 'demo-user',
         username: 'DemoTrader',
@@ -190,6 +190,27 @@ function initializeMockData() {
             longestStreak: 0,
             totalProfit: 0,
             avgHoldTime: 0
+        }
+    });
+    // Add user-1 for frontend compatibility
+    exports.users.push({
+        id: 'user-1',
+        username: 'PrizePicker',
+        email: 'user1@example.com',
+        avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=PrizePicker',
+        joinDate: Date.now(),
+        totalPortfolioValue: 10000,
+        seasonRank: 12,
+        liveRank: 12,
+        badges: [],
+        stats: {
+            totalTrades: 5,
+            winRate: 0.6,
+            bestDay: 150,
+            worstDay: -75,
+            longestStreak: 3,
+            totalProfit: 200,
+            avgHoldTime: 2.5
         }
     });
     // Create mock portfolios with realistic holdings
@@ -576,3 +597,21 @@ const getAllDemoUsers = () => {
     return Array.from(demoUsers.values());
 };
 exports.getAllDemoUsers = getAllDemoUsers;
+const createDemoPortfolio = (userId) => {
+    const portfolio = {
+        userId,
+        seasonHoldings: [],
+        liveHoldings: [],
+        totalValue: 10000,
+        availableBalance: 10000,
+        todaysPL: 0,
+        seasonPL: 0,
+        livePL: 0,
+        tradesRemaining: 100,
+        lastUpdated: Date.now()
+    };
+    exports.portfolios.push(portfolio);
+    console.log(`📊 Demo portfolio created for user: ${userId}`);
+    return portfolio;
+};
+exports.createDemoPortfolio = createDemoPortfolio;
