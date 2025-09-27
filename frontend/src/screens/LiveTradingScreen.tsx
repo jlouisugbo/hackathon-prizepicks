@@ -196,28 +196,27 @@ export default function LiveTradingScreen() {
           </Text>
         </View>
 
-        <FlatList
-          data={displayPlayers}
-          numColumns={2}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.playersGrid}
-          columnWrapperStyle={styles.playersRow}
-          renderItem={({ item: player }) => {
+        <View style={styles.playersGrid}>
+          {displayPlayers.map((player, index) => {
             const multiplier = flashMultipliers.get(player.id)?.multiplier;
 
             return (
-              <PlayerCard
-                player={player}
-                onBuy={() => handleQuickBuy(player)}
-                onSell={() => handleQuickSell(player)}
-                flashMultiplier={multiplier}
-                isLive={liveGame?.activePlayers.includes(player.id)}
-                compact={false}
-              />
+              <View
+                key={`player-${player.id}-${index}`}
+                style={styles.playerCardWrapper}
+              >
+                <PlayerCard
+                  player={player}
+                  onBuy={() => handleQuickBuy(player)}
+                  onSell={() => handleQuickSell(player)}
+                  flashMultiplier={multiplier}
+                  isLive={liveGame?.activePlayers.includes(player.id)}
+                  compact={false}
+                />
+              </View>
             );
-          }}
-        />
+          })}
+        </View>
       </View>
     );
   };
@@ -495,11 +494,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   playersGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     paddingBottom: 20,
-    paddingHorizontal: 16,
   },
-  playersRow: {
-    justifyContent: 'space-around',
+  playerCardWrapper: {
+    width: '48%',
+    marginBottom: 12,
   },
 
   // Events section

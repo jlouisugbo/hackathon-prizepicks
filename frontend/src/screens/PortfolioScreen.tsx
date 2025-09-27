@@ -22,6 +22,7 @@ import * as Haptics from 'expo-haptics';
 
 // Components
 import { PriceChart } from '../components/PriceChart';
+import PortfolioChart from '../components/PortfolioChart';
 
 // Contexts and utilities
 import { usePortfolio } from '../context/PortfolioContext';
@@ -63,6 +64,29 @@ export default function PortfolioScreen() {
     : portfolio?.livePL || 0;
 
   const totalHoldingsValue = currentHoldings.reduce((sum, holding) => sum + holding.totalValue, 0);
+
+  const generatePortfolioHistory = () => {
+    const currentValue = portfolio?.totalValue || 10000;
+    const days = 30;
+    const labels = [];
+    const values = [];
+
+    for (let i = days - 1; i >= 0; i--) {
+      if (i % 5 === 0 || i === 0) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        labels.push(i === 0 ? 'Now' : date.getDate().toString());
+
+        const variance = (Math.random() - 0.5) * 0.12;
+        const dayValue = currentValue * (1 - (i * 0.005) + variance);
+        values.push(Math.round(dayValue / 1000));
+      }
+    }
+
+    return { labels, values };
+  };
+
+  const portfolioHistory = generatePortfolioHistory();
 
   if (loading && !portfolio) {
     return (
@@ -127,6 +151,14 @@ export default function PortfolioScreen() {
               </View>
             </View>
           </View>
+
+          {/* Portfolio Chart */}
+          <Surface style={styles.chartCard}>
+            <PortfolioChart
+              data={portfolioHistory}
+              title="30-Day Portfolio Value"
+            />
+          </Surface>
 
           {/* Account Type Toggle */}
           <View style={styles.tabSection}>
@@ -395,6 +427,18 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     marginTop: 16,
+  },
+  chartCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 400,
   },
   summaryHeader: {
     marginHorizontal: 16,

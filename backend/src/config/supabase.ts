@@ -1,18 +1,29 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Supabase configuration
+// Supabase configuration - using new publishable and secret keys
 const supabaseUrl = process.env.SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || 'placeholder-key';
+const supabasePublishableKey = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || 'placeholder-key';
+const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
 
-export const isSupabaseConfigured = !!(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY);
+export const isSupabaseConfigured = !!(process.env.SUPABASE_URL && (process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY));
 
 if (!isSupabaseConfigured) {
   console.warn('⚠️  Supabase credentials missing. Running in development mode with mock data.');
 } else {
   console.log('✅ Supabase credentials found. Connecting to database...');
+  console.log('🔑 Using publishable key for client operations');
+  if (supabaseSecretKey) {
+    console.log('🔐 Secret key available for admin operations');
+  }
 }
 
-export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey);
+// Use publishable key for standard operations
+export const supabase: SupabaseClient = createClient(supabaseUrl, supabasePublishableKey);
+
+// Create admin client with secret key for privileged operations
+export const supabaseAdmin: SupabaseClient | null = supabaseSecretKey
+  ? createClient(supabaseUrl, supabaseSecretKey)
+  : null;
 
 // Database table names
 export const TABLES = {

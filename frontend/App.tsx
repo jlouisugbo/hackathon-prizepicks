@@ -101,7 +101,7 @@ function TabNavigator() {
 }
 
 function AppContent() {
-  const { isAuthenticated, loading } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -111,7 +111,8 @@ function AppContent() {
     );
   }
 
-  if (!isAuthenticated) {
+  // Show auth screen only if explicitly no user after loading is complete
+  if (!user) {
     return <AuthScreen />;
   }
 

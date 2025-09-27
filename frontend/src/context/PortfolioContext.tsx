@@ -14,19 +14,20 @@ interface PortfolioContextType {
 const PortfolioContext = createContext<PortfolioContextType | undefined>(undefined);
 
 export function PortfolioProvider({ children }: { children: React.ReactNode }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isAuthenticated && user) {
+    if (user) {
       fetchPortfolio();
-    } else {
+    } else if (!authLoading) {
+      // If auth loading is complete but no user, set loading to false
       setLoading(false);
       setPortfolio(null);
     }
-  }, [isAuthenticated, user]);
+  }, [user, authLoading]);
 
   const fetchPortfolio = async () => {
     if (!user) return;

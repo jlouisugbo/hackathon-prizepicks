@@ -33,7 +33,7 @@ const io = new Server(server, {
   }
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || '3002', 10);
 
 // Middleware
 app.use(cors({

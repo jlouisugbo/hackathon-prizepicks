@@ -157,7 +157,7 @@ export default function LeaderboardScreen() {
                       style={styles.badge}
                       textStyle={styles.badgeText}
                     >
-                      {badge.name}
+                      <Text>{badge.name}</Text>
                     </Chip>
                   ))}
                 </View>

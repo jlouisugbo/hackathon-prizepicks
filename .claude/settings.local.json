@@ -27,7 +27,12 @@
       "Bash(curl -s \"https://hackathon-prizepicks-production.up.railway.app/api/auth/online-count\")",
       "Bash(curl -s -X POST \"https://hackathon-prizepicks-production.up.railway.app/api/auth/demo-login\" -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"test@example.com\"\"}\")",
       "Bash(curl -s -X POST \"https://hackathon-prizepicks-production.up.railway.app/api/auth/demo-login\" -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"test@example.com\"\",\"\"username\"\":\"\"TestUser\"\"}\")",
-      "Bash(curl -s -X POST \"https://hackathon-prizepicks-production.up.railway.app/api/auth/register\" -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"newuser@example.com\"\",\"\"password\"\":\"\"test123\"\",\"\"username\"\":\"\"NewUser\"\"}\")"
+      "Bash(curl -s -X POST \"https://hackathon-prizepicks-production.up.railway.app/api/auth/register\" -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"newuser@example.com\"\",\"\"password\"\":\"\"test123\"\",\"\"username\"\":\"\"NewUser\"\"}\")",
+      "Bash(npm start)",
+      "Bash(curl -s -X POST \"http://localhost:3002/api/auth/register\" -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"test@example.com\"\",\"\"password\"\":\"\"test123\"\",\"\"username\"\":\"\"TestUser\"\"}\")",
+      "Bash(curl -s -X POST \"http://localhost:3002/api/auth/register\" -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"testuser@example.com\"\",\"\"password\"\":\"\"test123\"\",\"\"username\"\":\"\"TestUser\"\"}\")",
+      "Bash(curl:*)",
+      "Bash(npm install)"
     ],
     "deny": [],
     "ask": []

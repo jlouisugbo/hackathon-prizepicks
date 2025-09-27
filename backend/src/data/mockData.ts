@@ -658,3 +658,21 @@ export const getDemoOnlineUsersCount = () => {
 export const getAllDemoUsers = () => {
   return Array.from(demoUsers.values());
 };
+
+export const createDemoPortfolio = (userId: string) => {
+  const portfolio = {
+    userId,
+    seasonHoldings: [],
+    liveHoldings: [],
+    totalValue: 10000,
+    availableBalance: 10000,
+    todaysPL: 0,
+    seasonPL: 0,
+    livePL: 0,
+    tradesRemaining: 100,
+    lastUpdated: Date.now()
+  };
+  portfolios.push(portfolio);
+  console.log(`📊 Demo portfolio created for user: ${userId}`);
+  return portfolio;
+};

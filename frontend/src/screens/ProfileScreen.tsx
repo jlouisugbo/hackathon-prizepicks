@@ -185,7 +185,7 @@ export default function ProfileScreen() {
                 style={styles.tradesChip}
                 textStyle={{ fontWeight: 'bold' }}
               >
-                {portfolio.tradesRemaining}
+                <Text>{portfolio.tradesRemaining}</Text>
               </Chip>
             </View>
           </View>

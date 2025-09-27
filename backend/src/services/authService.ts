@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { supabase, TABLES, isSupabaseConfigured } from '../config/supabase';
 import { User, CreateUserRequest } from '../types';
-import { addDemoUser, getDemoUser, getDemoUserByEmail, updateDemoUserSession, getDemoOnlineUsersCount } from '../data/mockData';
+import { addDemoUser, getDemoUser, getDemoUserByEmail, updateDemoUserSession, getDemoOnlineUsersCount, createDemoPortfolio } from '../data/mockData';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'hackathon-demo-secret-key';
 const JWT_EXPIRES_IN = '24h'; // Long expiry for demo
@@ -129,16 +129,19 @@ class AuthService {
       };
 
       // Store in demo user storage
-      addDemoUser({ 
-        ...user, 
+      addDemoUser({
+        ...user,
         password_hash: hashedPassword,
         total_portfolio_value: 10000,
         season_rank: 0,
         live_rank: 0
       });
-      
+
+      // Create initial portfolio for demo user
+      createDemoPortfolio(user.id);
+
       const token = this.generateToken(user);
-      
+
       return { user, token };
     } catch (error) {
       console.error('Registration error:', error);

@@ -42,26 +42,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (storedToken && storedUser) {
         const userData = JSON.parse(storedUser);
-
-        // Verify token is still valid
-        try {
-          const response = await apiService.verifyAuthToken(storedToken);
-          if (response.success) {
-            setToken(storedToken);
-            setUser(userData);
-          } else {
-            // Token invalid, clear storage
-            await clearAuthData();
-          }
-        } catch (error) {
-          // Token verification failed, clear storage
-          await clearAuthData();
-        }
+        // For demo mode, just use stored data without verification
+        setToken(storedToken);
+        setUser(userData);
+      } else {
+        // Auto-login demo user if no auth data exists
+        await loginDemoUser();
       }
     } catch (error) {
       console.error('Error checking existing auth:', error);
+      // Fallback to demo user
+      await loginDemoUser();
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loginDemoUser = async () => {
+    try {
+      const response = await apiService.demoLogin('demo@example.com', 'DemoUser');
+      if (response.success && response.data) {
+        const { user: userData, token: authToken } = response.data;
+
+        await AsyncStorage.setItem(TOKEN_KEY, authToken);
+        await AsyncStorage.setItem(USER_KEY, JSON.stringify(userData));
+
+        setToken(authToken);
+        setUser(userData);
+      }
+    } catch (error) {
+      console.error('Demo login failed:', error);
+      // Set fallback demo user
+      const demoUser = {
+        id: 'd030067d-50aa-44c7-bc14-675af13fbb6a',
+        email: 'demo@example.com',
+        username: 'DemoUser',
+        createdAt: new Date().toISOString()
+      };
+      setUser(demoUser);
+      setToken('demo-token');
     }
   };
 
