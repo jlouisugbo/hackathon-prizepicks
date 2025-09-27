@@ -1,105 +1,396 @@
-<a href="https://demo-nextjs-with-supabase.vercel.app/">
-  <img alt="Next.js and Supabase Starter Kit - the fastest way to build apps with Next.js and Supabase" src="https://demo-nextjs-with-supabase.vercel.app/opengraph-image.png">
-  <h1 align="center">Next.js and Supabase Starter Kit</h1>
-</a>
+# Player Stock Market - NBA Trading Simulation 🏀📈
 
-<p align="center">
- The fastest way to build apps with Next.js and Supabase
-</p>
+A real-time NBA player stock market simulation with both **Season Portfolio** and **Live Trading** features. Built with React Native (Expo) frontend and Node.js backend with Socket.IO for real-time updates.
 
-<p align="center">
-  <a href="#features"><strong>Features</strong></a> ·
-  <a href="#demo"><strong>Demo</strong></a> ·
-  <a href="#deploy-to-vercel"><strong>Deploy to Vercel</strong></a> ·
-  <a href="#clone-and-run-locally"><strong>Clone and run locally</strong></a> ·
-  <a href="#feedback-and-issues"><strong>Feedback and issues</strong></a>
-  <a href="#more-supabase-examples"><strong>More Examples</strong></a>
-</p>
-<br/>
+## 🚀 Features
 
-## Features
+### Core Features
+- **Season Portfolio Management** - Long-term NBA player investments
+- **Live Trading** - Real-time trading during games with limited trades
+- **Flash Multipliers** - Dynamic price boosts during game events
+- **Real-time Price Updates** - WebSocket-powered live price feeds
+- **Leaderboards** - Season, Live, and Daily rankings
+- **Game Simulation** - Pre-scripted events and price movements
 
-- Works across the entire [Next.js](https://nextjs.org) stack
-  - App Router
-  - Pages Router
-  - Middleware
-  - Client
-  - Server
-  - It just works!
-- supabase-ssr. A package to configure Supabase Auth to use cookies
-- Password-based authentication block installed via the [Supabase UI Library](https://supabase.com/ui/docs/nextjs/password-based-auth)
-- Styling with [Tailwind CSS](https://tailwindcss.com)
-- Components with [shadcn/ui](https://ui.shadcn.com/)
-- Optional deployment with [Supabase Vercel Integration and Vercel deploy](#deploy-your-own)
-  - Environment variables automatically assigned to Vercel project
+### Technical Features
+- **Monorepo Architecture** - Shared TypeScript types
+- **Real-time Communication** - Socket.IO for live updates
+- **Mock Data System** - 10 NBA players with realistic data
+- **RESTful API** - Complete backend API with all endpoints
+- **Modern UI** - React Native Paper components with custom theme
 
-## Demo
+## 📱 Screenshots & Design Reference
 
-You can view a fully working demo at [demo-nextjs-with-supabase.vercel.app](https://demo-nextjs-with-supabase.vercel.app/).
+The app is designed to match modern stock trading apps with a clean, professional interface. Reference your React web app at: https://github.com/jlouisugbo/hackathon-preview
 
-## Deploy to Vercel
+### Converting Web Design to React Native
 
-Vercel deployment will guide you through creating a Supabase account and project.
+To integrate your existing web design into this React Native project:
 
-After installation of the Supabase integration, all relevant environment variables will be assigned to the project so the deployment is fully functioning.
+1. **Color Scheme Transfer**:
+   ```typescript
+   // Update src/theme/theme.ts with your web app colors
+   colors: {
+     primary: '#your-primary-color',
+     secondary: '#your-secondary-color',
+     // ... other colors
+   }
+   ```
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&project-name=nextjs-with-supabase&repository-name=nextjs-with-supabase&demo-title=nextjs-with-supabase&demo-description=This+starter+configures+Supabase+Auth+to+use+cookies%2C+making+the+user%27s+session+available+throughout+the+entire+Next.js+app+-+Client+Components%2C+Server+Components%2C+Route+Handlers%2C+Server+Actions+and+Middleware.&demo-url=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2F&external-id=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&demo-image=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2Fopengraph-image.png)
+2. **Component Mapping**:
+   - Web `div` → React Native `View`
+   - Web `button` → React Native Paper `Button`
+   - Web CSS Grid → React Native `flexDirection: 'row'` with `flexWrap`
+   - Web CSS Flexbox → React Native `StyleSheet` with flex properties
 
-The above will also clone the Starter kit to your GitHub, you can clone that locally and develop locally.
+3. **Layout Patterns**:
+   ```typescript
+   // Web: display: grid; grid-template-columns: repeat(3, 1fr);
+   // React Native:
+   const styles = StyleSheet.create({
+     grid: {
+       flexDirection: 'row',
+       flexWrap: 'wrap',
+       justifyContent: 'space-between',
+     },
+     gridItem: {
+       width: '31%', // For 3 columns
+     }
+   });
+   ```
 
-If you wish to just develop locally and not deploy to Vercel, [follow the steps below](#clone-and-run-locally).
+4. **Navigation Integration**:
+   Your web routes can map to React Navigation screens:
+   - `/portfolio` → `SeasonPortfolioScreen`
+   - `/live` → `LiveTradingScreen`
+   - `/leaderboard` → `LeaderboardScreen`
+   - `/profile` → `ProfileScreen`
 
-## Clone and run locally
+## 🛠 Project Structure
 
-1. You'll first need a Supabase project which can be made [via the Supabase dashboard](https://database.new)
+```
+player-stock-market/
+├── backend/                 # Node.js Express + Socket.IO server
+│   ├── src/
+│   │   ├── routes/         # API endpoints
+│   │   ├── socket/         # Real-time handlers
+│   │   ├── data/           # Mock data and game simulation
+│   │   └── utils/          # Utilities and price engine
+├── frontend/               # Expo React Native app
+│   ├── src/
+│   │   ├── screens/        # Main app screens
+│   │   ├── components/     # Reusable components
+│   │   ├── context/        # React Context providers
+│   │   ├── services/       # API client
+│   │   ├── theme/          # App theming
+│   │   └── utils/          # Formatters and utilities
+├── shared/                 # Shared TypeScript types
+└── package.json           # Root workspace configuration
+```
 
-2. Create a Next.js app using the Supabase Starter template npx command
+## 🚀 Quick Start
 
+### Prerequisites
+- Node.js 18+
+- npm 8+
+- Expo CLI (`npm install -g @expo/cli`)
+
+### Installation
+
+1. **Clone and Install**:
    ```bash
-   npx create-next-app --example with-supabase with-supabase-app
+   cd player-stock-market
+   npm run install:all
    ```
 
+2. **Start Development Servers**:
    ```bash
-   yarn create next-app --example with-supabase with-supabase-app
-   ```
-
-   ```bash
-   pnpm create next-app --example with-supabase with-supabase-app
-   ```
-
-3. Use `cd` to change into the app's directory
-
-   ```bash
-   cd with-supabase-app
-   ```
-
-4. Rename `.env.example` to `.env.local` and update the following:
-
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=[INSERT SUPABASE PROJECT URL]
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=[INSERT SUPABASE PROJECT API ANON KEY]
-   ```
-
-   Both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` can be found in [your Supabase project's API settings](https://supabase.com/dashboard/project/_?showConnect=true)
-
-5. You can now run the Next.js local development server:
-
-   ```bash
+   # Start both backend and frontend concurrently
    npm run dev
+
+   # Or start individually:
+   npm run backend:dev    # Backend on port 3001
+   npm run frontend:start # Expo dev server
    ```
 
-   The starter kit should now be running on [localhost:3000](http://localhost:3000/).
+3. **Open the App**:
+   - **iOS**: Press `i` in the Expo terminal or scan QR code with Camera app
+   - **Android**: Press `a` in the Expo terminal or scan QR code with Expo Go app
+   - **Web**: Press `w` in the Expo terminal
 
-6. This template comes with the default shadcn/ui style initialized. If you instead want other ui.shadcn styles, delete `components.json` and [re-install shadcn/ui](https://ui.shadcn.com/docs/installation/next)
+## 🔧 Development
 
-> Check out [the docs for Local Development](https://supabase.com/docs/guides/getting-started/local-development) to also run Supabase locally.
+### Environment Setup
 
-## Feedback and issues
+**Backend** (`.env`):
+```bash
+PORT=3001
+NODE_ENV=development
+CORS_ORIGIN=http://localhost:19006
+JWT_SECRET=your-super-secret-jwt-key-for-hackathon
+```
 
-Please file feedback and issues over on the [Supabase GitHub org](https://github.com/supabase/supabase/issues/new/choose).
+**Frontend** (`.env`):
+```bash
+EXPO_PUBLIC_API_URL=http://localhost:3001
+EXPO_PUBLIC_SOCKET_URL=http://localhost:3001
+EXPO_PUBLIC_APP_ENV=development
+```
 
-## More Supabase examples
+### Available Scripts
 
-- [Next.js Subscription Payments Starter](https://github.com/vercel/nextjs-subscription-payments)
-- [Cookie-based Auth and the Next.js 13 App Router (free course)](https://youtube.com/playlist?list=PL5S4mPUpp4OtMhpnp93EFSo42iQ40XjbF)
-- [Supabase Auth and the Next.js App Router](https://github.com/supabase/supabase/tree/master/examples/auth/nextjs)
+```bash
+# Root level
+npm run dev                 # Start both servers
+npm run install:all         # Install all dependencies
+npm run clean              # Remove all node_modules
+
+# Backend
+npm run backend:dev        # Start with nodemon
+npm run backend:build      # Build TypeScript
+npm run backend:start      # Start production build
+
+# Frontend
+npm run frontend:start     # Start Expo dev server
+npm run frontend:android   # Open Android emulator
+npm run frontend:ios       # Open iOS simulator
+npm run frontend:web       # Open web browser
+```
+
+## 📊 API Endpoints
+
+### Players
+- `GET /api/players` - Get all players
+- `GET /api/players/:id` - Get player details
+- `GET /api/players/:id/history` - Get price history
+- `GET /api/players/trending/gainers` - Top gainers
+- `GET /api/players/trending/losers` - Top losers
+
+### Portfolio
+- `GET /api/portfolio/:userId` - Get user portfolio
+- `GET /api/portfolio/:userId/performance` - Portfolio stats
+- `GET /api/portfolio/:userId/holdings/:accountType` - Get holdings
+
+### Trading
+- `POST /api/trades/market` - Execute market order
+- `GET /api/trades/:userId/history` - Trade history
+- `GET /api/trades/recent` - Recent trades feed
+
+### Leaderboards
+- `GET /api/leaderboard/season` - Season rankings
+- `GET /api/leaderboard/live` - Live game rankings
+- `GET /api/leaderboard/daily` - Daily top performers
+
+### Game
+- `GET /api/game/current` - Current live game
+- `GET /api/game/status` - Detailed game status
+- `GET /api/game/schedule` - Upcoming games
+
+## 🎮 Game Simulation
+
+The backend includes a realistic game simulation with:
+
+### Pre-scripted Events (Demo)
+1. **LeBron James** - Clutch three-pointer (2.5x multiplier)
+2. **Stephen Curry** - Steal + deep three (3.2x multiplier)
+3. **Giannis** - Thunderous dunk (1.8x multiplier)
+4. **Luka Dončić** - No-look assist (1.5x multiplier)
+5. **Joel Embiid** - Massive block (2.1x multiplier)
+6. **Curry Game Winner** - Game-winning shot (5.0x multiplier)
+
+### Price Update System
+- **Price Updates**: Every 8-12 seconds during live games
+- **Flash Multipliers**: 15% chance per update cycle
+- **Volatility**: Player-specific volatility ratings (0.1-0.3)
+- **Market Hours**: Active during simulated game time
+
+## 📱 Converting Your Web Design
+
+### 1. Extract Design Tokens
+From your web app, identify:
+- **Colors**: Primary, secondary, accent colors
+- **Typography**: Font sizes, weights, line heights
+- **Spacing**: Margins, paddings, gaps
+- **Border Radius**: Corner radius values
+- **Shadows**: Box shadow equivalents
+
+### 2. Map Web Components to React Native
+
+| Web Element | React Native Equivalent |
+|-------------|------------------------|
+| `<div>` | `<View>` |
+| `<button>` | `<Button>` from react-native-paper |
+| `<input>` | `<TextInput>` |
+| `<img>` | `<Image>` |
+| CSS Grid | `flexDirection: 'row'` + `flexWrap` |
+| CSS Flexbox | StyleSheet with flex properties |
+| CSS positioning | `position: 'absolute'` |
+
+### 3. Responsive Design
+```typescript
+import { Dimensions } from 'react-native';
+
+const { width, height } = Dimensions.get('window');
+
+const styles = StyleSheet.create({
+  container: {
+    width: width > 768 ? '50%' : '100%', // Tablet vs mobile
+  }
+});
+```
+
+### 4. Animation Integration
+If your web app has animations, use:
+- **react-native-reanimated** for complex animations
+- **expo-haptics** for tactile feedback
+- **react-native-animatable** for simple transitions
+
+### 5. Platform-Specific Styling
+```typescript
+import { Platform } from 'react-native';
+
+const styles = StyleSheet.create({
+  card: {
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
+  },
+});
+```
+
+## 🎯 Demo Data
+
+### Mock Users
+- 10 users with realistic portfolios
+- Season holdings (2-4 positions each)
+- Live holdings (0-2 positions each)
+- Trading history and performance stats
+
+### NBA Players (Mock Data)
+1. **LeBron James** (LAL) - $189.50
+2. **Stephen Curry** (GSW) - $176.25
+3. **Giannis Antetokounmpo** (MIL) - $195.75
+4. **Luka Dončić** (DAL) - $182.40
+5. **Jayson Tatum** (BOS) - $168.90
+6. **Joel Embiid** (PHI) - $173.60
+7. **Nikola Jokić** (DEN) - $187.30
+8. **Kevin Durant** (PHX) - $165.80
+9. **Damian Lillard** (MIL) - $159.45
+10. **Anthony Davis** (LAL) - $171.20
+
+Each player includes:
+- 30 days of realistic price history
+- Current stats (PPG, RPG, APG, FG%, 3P%)
+- Team information and playing status
+- Individual volatility ratings
+
+## 🔄 Real-time Features
+
+### Socket.IO Events
+
+**Client → Server**:
+- `join_room` - Join user room
+- `send_chat_message` - Send chat message
+- `subscribe_player` - Subscribe to player updates
+- `join_live_trading` - Join live trading room
+
+**Server → Client**:
+- `price_update` - Real-time price changes
+- `flash_multiplier` - Flash multiplier events
+- `game_event` - Game events (dunks, assists, etc.)
+- `leaderboard_update` - Updated rankings
+- `trade_executed` - Trade confirmations
+
+## 🛠 Customization
+
+### Adding New Players
+```typescript
+// backend/src/data/mockData.ts
+const newPlayer = {
+  name: 'Player Name',
+  team: 'TEAM',
+  position: 'PG' as const,
+  basePrice: 150.00,
+  volatility: 0.18,
+  jersey: 24,
+  stats: { ppg: 25.0, rpg: 6.0, apg: 8.0, fg: 0.485, threePt: 0.365, gamesPlayed: 70, minutesPerGame: 35.0 }
+};
+```
+
+### Customizing Game Events
+```typescript
+// backend/src/socket/gameSimulation.ts
+const customEvent = {
+  playerName: 'Player Name',
+  eventType: 'three_pointer',
+  multiplier: 2.0,
+  description: 'Custom event description!',
+  priceImpact: 12.50,
+  quarter: 4,
+  gameTime: '2:30'
+};
+```
+
+### Theme Customization
+```typescript
+// frontend/src/theme/theme.ts
+export const theme = {
+  colors: {
+    primary: '#your-primary-color',
+    secondary: '#your-secondary-color',
+    bullish: '#your-green-color',
+    bearish: '#your-red-color',
+    // ... other colors
+  }
+};
+```
+
+## 🚀 Deployment
+
+### Backend Deployment
+1. **Build**: `npm run build`
+2. **Environment**: Set production environment variables
+3. **Deploy**: Use services like Railway, Render, or Vercel
+
+### Frontend Deployment
+1. **Expo Build**: `expo build:web` for web deployment
+2. **EAS Build**: `eas build` for app store builds
+3. **Update API URL**: Point to production backend
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📝 License
+
+This project is for hackathon/educational purposes. Not for commercial use.
+
+## 🎯 Hackathon Ready
+
+This skeleton provides:
+- ✅ **Complete Backend API** with all endpoints
+- ✅ **Real-time Socket.IO Integration**
+- ✅ **React Native Frontend** with navigation
+- ✅ **Mock Data System** for immediate testing
+- ✅ **Game Simulation** with pre-scripted events
+- ✅ **Responsive Design** for mobile/tablet
+- ✅ **TypeScript** throughout for type safety
+- ✅ **Development Tools** for rapid iteration
+
+Start coding your hackathon features immediately - the foundation is ready! 🚀
+
+---
+
+**Happy Hacking! 🏀📱**
