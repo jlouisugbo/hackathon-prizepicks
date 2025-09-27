@@ -182,7 +182,7 @@ export function initializeMockData() {
     }
   }));
 
-  // Add demo user for testing
+  // Add demo users for testing
   users.push({
     id: 'demo-user',
     username: 'DemoTrader',
@@ -201,6 +201,28 @@ export function initializeMockData() {
       longestStreak: 0,
       totalProfit: 0,
       avgHoldTime: 0
+    }
+  });
+
+  // Add user-1 for frontend compatibility
+  users.push({
+    id: 'user-1',
+    username: 'PrizePicker',
+    email: 'user1@example.com',
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=PrizePicker',
+    joinDate: Date.now(),
+    totalPortfolioValue: 10000,
+    seasonRank: 12,
+    liveRank: 12,
+    badges: [],
+    stats: {
+      totalTrades: 5,
+      winRate: 0.6,
+      bestDay: 150,
+      worstDay: -75,
+      longestStreak: 3,
+      totalProfit: 200,
+      avgHoldTime: 2.5
     }
   });
 
