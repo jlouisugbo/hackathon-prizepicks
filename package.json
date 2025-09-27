@@ -20,7 +20,9 @@
     "start:backend": "cd backend && npm start",
     "test": "concurrently \"npm run test:backend\" \"npm run test:frontend\"",
     "test:backend": "cd backend && npm test",
-    "test:frontend": "cd frontend && npm test"
+    "test:frontend": "cd frontend && npm test",
+    "render:build": "chmod +x render-build.sh && ./render-build.sh",
+    "render:start": "cd backend && npm start"
   },
   "devDependencies": {
     "concurrently": "^7.6.0"
