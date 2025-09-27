@@ -1,9 +1,225 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { getPlayers, getPortfolios, getTrades, addTrade, portfolios, players } from '../data/mockData';
+import { getPlayers, getPortfolios, getTrades, addTrade, portfolios, players, createLimitOrder, getUserLimitOrders, executeTradeOrder } from '../data/mockData';
+import { databaseService } from '../services/databaseService';
+import { authService } from '../services/authService';
 import { ApiResponse, Trade, TradeRequest, Portfolio } from '../types';
 
 const router = express.Router();
+
+// POST /api/trades - Execute trade (simplified endpoint for demo)
+router.post('/', async (req, res) => {
+  try {
+    const tradeRequest = req.body;
+    const { playerId, playerName, type, shares, orderType = 'market', accountType = 'season' } = tradeRequest;
+    
+    // Extract user ID from Authorization header
+    let userId: string;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        const decoded = authService.verifyToken(token);
+        userId = decoded.id;
+      } catch (error) {
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid or expired token',
+          message: 'Authentication required'
+        });
+      }
+    } else {
+      // Fallback for demo
+      userId = req.headers['user-id'] as string || 'demo-user';
+    }
+
+    // Validation
+    if (!playerId || !type || !shares) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields',
+        message: 'playerId, type, and shares are required'
+      });
+    }
+
+    if (!['buy', 'sell'].includes(type)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid trade type',
+        message: 'Trade type must be "buy" or "sell"'
+      });
+    }
+
+    if (shares <= 0 || !Number.isInteger(shares)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid shares',
+        message: 'Shares must be a positive integer'
+      });
+    }
+
+    // Find player
+    const playersList = getPlayers();
+    const player = playersList.find(p => p.id === playerId);
+    if (!player) {
+      return res.status(404).json({
+        success: false,
+        error: 'Player not found',
+        message: `Player with ID ${playerId} not found`
+      });
+    }
+
+    const currentPrice = player.currentPrice;
+    const totalAmount = shares * currentPrice;
+
+    // Try to execute trade using database service first
+    let tradeResult;
+    let portfolio = await databaseService.getPortfolioByUserId(userId);
+    
+    if (portfolio) {
+      // Execute with Supabase
+      tradeResult = await executeTradeWithDatabase(userId, playerId, playerName || player.name, type, shares, currentPrice, accountType, totalAmount);
+    } else {
+      // Fallback to mock data
+      tradeResult = executeTradeOrder(userId, playerId, shares, type, accountType);
+    }
+
+    if (tradeResult.success) {
+      const trade: Trade = {
+        id: uuidv4(),
+        userId,
+        playerId,
+        playerName: playerName || player.name,
+        type,
+        orderType,
+        shares,
+        price: currentPrice,
+        timestamp: Date.now(),
+        accountType,
+        status: 'executed',
+        totalAmount,
+        multiplier: 1.0
+      };
+
+      const response: ApiResponse<Trade> = {
+        success: true,
+        data: trade,
+        message: `${type.toUpperCase()} order executed successfully`
+      };
+
+      res.json(response);
+    } else {
+      res.status(400).json({
+        success: false,
+        error: tradeResult.error,
+        message: `Trade failed: ${tradeResult.error}`
+      });
+    }
+
+  } catch (error) {
+    console.error('Trade execution error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Trade execution failed',
+      message: 'An error occurred while executing the trade'
+    });
+  }
+});
+
+// Helper function to execute trade with database
+async function executeTradeWithDatabase(
+  userId: string, 
+  playerId: string, 
+  playerName: string, 
+  type: 'buy' | 'sell', 
+  shares: number, 
+  price: number, 
+  accountType: 'season' | 'live',
+  totalAmount: number
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Get current portfolio
+    const portfolio = await databaseService.getPortfolioByUserId(userId);
+    if (!portfolio) {
+      return { success: false, error: 'Portfolio not found' };
+    }
+
+    if (type === 'buy') {
+      // Check if user has enough balance
+      if (portfolio.availableBalance < totalAmount) {
+        return { success: false, error: 'Insufficient balance' };
+      }
+
+      // Update portfolio balance
+      await databaseService.updatePortfolio(userId, {
+        ...portfolio,
+        availableBalance: portfolio.availableBalance - totalAmount,
+        totalValue: portfolio.totalValue // Will be updated by holding creation
+      });
+
+      // Create or update holding
+      await databaseService.createOrUpdateHolding(userId, {
+        playerId,
+        playerName,
+        shares,
+        averagePrice: price,
+        currentPrice: price,
+        totalValue: totalAmount,
+        unrealizedPL: 0,
+        unrealizedPLPercent: 0,
+        accountType,
+        purchaseDate: Date.now()
+      });
+
+    } else { // sell
+      // Check if user has enough shares
+      const existingPortfolio = await databaseService.getPortfolioByUserId(userId);
+      const holdings = accountType === 'season' ? existingPortfolio?.seasonHoldings : existingPortfolio?.liveHoldings;
+      const holding = holdings?.find(h => h.playerId === playerId);
+      
+      if (!holding || holding.shares < shares) {
+        return { success: false, error: 'Insufficient shares' };
+      }
+
+      // Update portfolio balance
+      await databaseService.updatePortfolio(userId, {
+        ...portfolio,
+        availableBalance: portfolio.availableBalance + totalAmount
+      });
+
+      // Update holding (reduce shares)
+      await databaseService.createOrUpdateHolding(userId, {
+        playerId,
+        playerName,
+        shares: -shares, // Negative to reduce shares
+        averagePrice: holding.averagePrice,
+        currentPrice: price,
+        accountType,
+        purchaseDate: holding.purchaseDate
+      });
+    }
+
+    // Record the trade
+    await databaseService.createTrade(userId, {
+      userId,
+      playerId,
+      playerName,
+      type,
+      orderType: 'market',
+      shares,
+      price,
+      accountType,
+      status: 'executed',
+      totalAmount,
+      multiplier: 1.0
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Database trade execution error:', error);
+    return { success: false, error: 'Database operation failed' };
+  }
+}
 
 // POST /api/trades/market - Execute market order
 router.post('/market', (req, res) => {
@@ -225,13 +441,86 @@ router.post('/market', (req, res) => {
   }
 });
 
-// POST /api/trades/limit - Place limit order (for future implementation)
+// POST /api/trades/limit - Place limit order
 router.post('/limit', (req, res) => {
-  res.status(501).json({
-    success: false,
-    error: 'Not implemented',
-    message: 'Limit orders are not yet implemented'
-  });
+  try {
+    const { playerId, type, shares, limitPrice, accountType } = req.body;
+    const userId = req.headers['user-id'] as string || 'user-1'; // Demo user ID
+
+    // Validation
+    if (!playerId || !type || !shares || !limitPrice || !accountType) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields',
+        message: 'playerId, type, shares, limitPrice, and accountType are required'
+      });
+    }
+
+    if (!['buy', 'sell'].includes(type)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid trade type',
+        message: 'Trade type must be "buy" or "sell"'
+      });
+    }
+
+    if (!['season', 'live'].includes(accountType)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid account type',
+        message: 'Account type must be "season" or "live"'
+      });
+    }
+
+    if (shares <= 0 || !Number.isInteger(shares)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid shares',
+        message: 'Shares must be a positive integer'
+      });
+    }
+
+    if (limitPrice <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid limit price',
+        message: 'Limit price must be greater than 0'
+      });
+    }
+
+    // Check if user already has too many pending limit orders
+    const userOrders = getUserLimitOrders(userId);
+    if (userOrders.length >= 10) {
+      return res.status(400).json({
+        success: false,
+        error: 'Too many pending orders',
+        message: 'Maximum 10 pending limit orders allowed'
+      });
+    }
+
+    const result = createLimitOrder(userId, playerId, shares, type, limitPrice, accountType);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error,
+        message: result.error
+      });
+    }
+
+    res.json({
+      success: true,
+      data: result.order,
+      message: 'Limit order created successfully'
+    });
+  } catch (error) {
+    console.error('Error creating limit order:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create limit order',
+      message: 'An error occurred while creating the limit order'
+    });
+  }
 });
 
 // GET /api/trades/:userId/history - Get trade history for user

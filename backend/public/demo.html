@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Stock Market - Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: white;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .auth-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 16px;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            margin-right: 10px;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        .demo-btn {
+            background: linear-gradient(45deg, #4CAF50, #45a049) !important;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .players-section {
+            margin-top: 30px;
+        }
+        
+        .players-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .player-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            transition: transform 0.2s;
+            position: relative;
+        }
+        
+        .player-card:hover {
+            transform: scale(1.05);
+        }
+        
+        .trading-controls {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .trading-row {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        
+        .shares-input {
+            width: 60px;
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 12px;
+        }
+        
+        .trade-btn {
+            padding: 4px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.1s;
+            flex: 1;
+        }
+        
+        .buy-btn {
+            background: linear-gradient(45deg, #2ecc71, #27ae60);
+            color: white;
+        }
+        
+        .sell-btn {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+        }
+        
+        .trade-btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        .portfolio-section {
+            margin-top: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+        }
+        
+        .balance-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .balance-item {
+            text-align: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+        
+        .balance-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #4ecdc4;
+        }
+        
+        .holdings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .holding-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+        
+        .price {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #4ecdc4;
+        }
+        
+        .change {
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .positive { color: #2ecc71; }
+        .negative { color: #e74c3c; }
+        
+        .connected-users {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 15px;
+            border-radius: 25px;
+            font-size: 14px;
+        }
+        
+        .chat-section {
+            margin-top: 30px;
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            max-height: 200px;
+        }
+        
+        .chat-input-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-input {
+            flex: 1;
+        }
+        
+        .message {
+            margin-bottom: 10px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .message-user {
+            font-weight: bold;
+            color: #4ecdc4;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="connected-users">
+        🟢 <span id="userCount">0</span> users online
+    </div>
+
+    <div class="container">
+        <h1>🏀 Player Stock Market</h1>
+        
+        <div class="auth-section" id="authSection">
+            <h3>Demo Login</h3>
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" placeholder="Enter your email" value="demo@test.com">
+            </div>
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" placeholder="Enter username" value="DemoUser">
+            </div>
+            <button onclick="demoLogin()">Quick Demo Login</button>
+            <button onclick="registerUser()">Register</button>
+            <button onclick="skipToDemo()" class="demo-btn">Skip to Demo Mode</button>
+            <div class="status" id="authStatus">Ready to connect...</div>
+        </div>
+
+        <div class="hidden" id="mainSection">
+            <div class="status" id="connectionStatus">Connecting...</div>
+            
+            <div class="players-section">
+                <h3>Live Player Prices</h3>
+                <div class="players-grid" id="playersGrid">
+                    Loading players...
+                </div>
+            </div>
+            
+            <div class="portfolio-section">
+                <h3>Your Portfolio</h3>
+                <div class="balance-info">
+                    <div class="balance-item">
+                        <div>Available Balance</div>
+                        <div class="balance-value" id="availableBalance">$10,000</div>
+                    </div>
+                    <div class="balance-item">
+                        <div>Total Value</div>
+                        <div class="balance-value" id="totalValue">$10,000</div>
+                    </div>
+                    <div class="balance-item">
+                        <div>Today's P&L</div>
+                        <div class="balance-value" id="todaysPL">$0.00</div>
+                    </div>
+                </div>
+                <h4>Your Holdings</h4>
+                <div class="holdings-grid" id="holdingsGrid">
+                    No holdings yet - buy some stocks!
+                </div>
+            </div>
+            
+            <div class="chat-section">
+                <h3>Live Chat</h3>
+                <div class="chat-messages" id="chatMessages"></div>
+                <div class="chat-input-group">
+                    <input type="text" id="chatInput" class="chat-input" placeholder="Type a message..." 
+                           onkeypress="handleChatKeypress(event)">
+                    <button onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let socket;
+        let currentUser = null;
+        let authToken = null;
+        const API_BASE = 'http://localhost:3001/api';
+
+        // Authentication functions
+        async function demoLogin() {
+            const email = document.getElementById('email').value;
+            const username = document.getElementById('username').value;
+            
+            if (!email) {
+                updateAuthStatus('Please enter an email');
+                return;
+            }
+
+            try {
+                updateAuthStatus('Logging in...');
+                const response = await fetch(`${API_BASE}/auth/demo-login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, username })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = data.data.user;
+                    authToken = data.data.token;
+                    updateAuthStatus(`Welcome, ${currentUser.username}!`);
+                    showMainSection();
+                    connectSocket();
+                } else {
+                    updateAuthStatus(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                updateAuthStatus(`Connection error: ${error.message}`);
+            }
+        }
+
+        async function registerUser() {
+            const email = document.getElementById('email').value;
+            const username = document.getElementById('username').value;
+            
+            if (!email || !username) {
+                updateAuthStatus('Please enter email and username');
+                return;
+            }
+
+            try {
+                updateAuthStatus('Registering...');
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        email, 
+                        username, 
+                        password: 'demo123' // Simple password for demo
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = data.data.user;
+                    authToken = data.data.token;
+                    updateAuthStatus(`Registered and logged in as ${currentUser.username}!`);
+                    showMainSection();
+                    connectSocket();
+                } else {
+                    updateAuthStatus(`Registration error: ${data.error}`);
+                }
+            } catch (error) {
+                updateAuthStatus(`Connection error: ${error.message}`);
+            }
+        }
+
+        // Skip authentication and use demo user
+        function skipToDemo() {
+            // Set up demo user with our hardcoded demo-user ID
+            currentUser = {
+                id: 'demo-user',
+                username: 'DemoTrader',
+                email: 'demo@example.com'
+            };
+            authToken = null; // No auth token needed for demo mode
+            updateAuthStatus('Demo Mode - Trading without authentication');
+            showMainSection();
+            connectSocket();
+        }
+
+        function updateAuthStatus(message) {
+            document.getElementById('authStatus').textContent = message;
+        }
+
+        function showMainSection() {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('mainSection').classList.remove('hidden');
+        }
+
+        // Socket connection
+        function connectSocket() {
+            socket = io('http://localhost:3001');
+
+            socket.emit('join_room', {
+                userId: currentUser.id,
+                username: currentUser.username,
+                token: authToken
+            });
+
+            socket.on('connect', () => {
+                document.getElementById('connectionStatus').textContent = 
+                    `🟢 Connected as ${currentUser.username}`;
+                loadPlayers();
+                loadPortfolio();
+            });
+
+            socket.on('disconnect', () => {
+                document.getElementById('connectionStatus').textContent = '🔴 Disconnected';
+            });
+
+            socket.on('user_count', (count) => {
+                document.getElementById('userCount').textContent = count;
+            });
+
+            socket.on('price_update', (data) => {
+                updatePlayerPrice(data);
+            });
+
+            socket.on('portfolio_update', (portfolio) => {
+                updatePortfolioDisplay(portfolio);
+            });
+
+            socket.on('trade_executed', (trade) => {
+                addChatMessage({
+                    id: 'trade-notification',
+                    username: 'System',
+                    message: `🔔 Trade executed: ${trade.type.toUpperCase()} ${trade.shares} shares of ${trade.playerName} at $${trade.price.toFixed(2)}`,
+                    type: 'system'
+                });
+                loadPortfolio(); // Refresh portfolio after trade
+            });
+
+            socket.on('chat_message', (message) => {
+                addChatMessage(message);
+            });
+
+            socket.on('notification', (notification) => {
+                console.log('Notification:', notification);
+                addChatMessage({
+                    id: 'system',
+                    username: 'System',
+                    message: notification.message,
+                    type: 'system'
+                });
+            });
+        }
+
+        // Load players data
+        async function loadPlayers() {
+            try {
+                const response = await fetch(`${API_BASE}/players`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayPlayers(data.data);
+                }
+            } catch (error) {
+                console.error('Error loading players:', error);
+            }
+        }
+
+        function displayPlayers(players) {
+            const grid = document.getElementById('playersGrid');
+            grid.innerHTML = players.map(player => `
+                <div class="player-card" data-player-id="${player.id}">
+                    <div style="font-weight: bold; margin-bottom: 8px;">${player.name}</div>
+                    <div style="color: #bbb; font-size: 12px; margin-bottom: 8px;">
+                        ${player.team} - ${player.position}
+                    </div>
+                    <div class="price" id="price-${player.id}">$${player.currentPrice.toFixed(2)}</div>
+                    <div class="change ${player.priceChangePercent24h >= 0 ? 'positive' : 'negative'}" 
+                         id="change-${player.id}">
+                        ${player.priceChangePercent24h >= 0 ? '+' : ''}${player.priceChangePercent24h.toFixed(2)}%
+                    </div>
+                    <div class="trading-controls">
+                        <div class="trading-row">
+                            <input type="number" class="shares-input" id="shares-${player.id}" 
+                                   placeholder="Shares" min="1" value="1">
+                        </div>
+                        <div class="trading-row">
+                            <button class="trade-btn buy-btn" onclick="buyStock('${player.id}', '${player.name}')">
+                                Buy
+                            </button>
+                            <button class="trade-btn sell-btn" onclick="sellStock('${player.id}', '${player.name}')">
+                                Sell
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updatePlayerPrice(data) {
+            const priceElement = document.getElementById(`price-${data.playerId}`);
+            const changeElement = document.getElementById(`change-${data.playerId}`);
+            
+            if (priceElement) {
+                priceElement.textContent = `$${data.price.toFixed(2)}`;
+                priceElement.style.animation = 'none';
+                setTimeout(() => priceElement.style.animation = 'pulse 0.5s', 10);
+            }
+            
+            if (changeElement) {
+                changeElement.textContent = `${data.changePercent >= 0 ? '+' : ''}${data.changePercent.toFixed(2)}%`;
+                changeElement.className = `change ${data.changePercent >= 0 ? 'positive' : 'negative'}`;
+            }
+        }
+
+        // Trading functions
+        async function buyStock(playerId, playerName) {
+            const sharesInput = document.getElementById(`shares-${playerId}`);
+            const shares = parseInt(sharesInput.value) || 1;
+            
+            if (shares < 1) {
+                alert('Please enter a valid number of shares');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/trades`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        playerId: playerId,
+                        playerName: playerName,
+                        type: 'buy',
+                        shares: shares,
+                        orderType: 'market',
+                        accountType: 'season'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    addChatMessage({
+                        id: 'trade',
+                        username: 'System',
+                        message: `✅ Bought ${shares} shares of ${playerName}`,
+                        type: 'system'
+                    });
+                    loadPortfolio();
+                    sharesInput.value = '1'; // Reset to 1
+                } else {
+                    alert(`Trade failed: ${data.error}`);
+                }
+            } catch (error) {
+                alert(`Trade error: ${error.message}`);
+            }
+        }
+
+        async function sellStock(playerId, playerName) {
+            const sharesInput = document.getElementById(`shares-${playerId}`);
+            const shares = parseInt(sharesInput.value) || 1;
+            
+            if (shares < 1) {
+                alert('Please enter a valid number of shares');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/trades`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        playerId: playerId,
+                        playerName: playerName,
+                        type: 'sell',
+                        shares: shares,
+                        orderType: 'market',
+                        accountType: 'season'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    addChatMessage({
+                        id: 'trade',
+                        username: 'System',
+                        message: `💰 Sold ${shares} shares of ${playerName}`,
+                        type: 'system'
+                    });
+                    loadPortfolio();
+                    sharesInput.value = '1'; // Reset to 1
+                } else {
+                    alert(`Trade failed: ${data.error}`);
+                }
+            } catch (error) {
+                alert(`Trade error: ${error.message}`);
+            }
+        }
+
+        // Portfolio functions
+        async function loadPortfolio() {
+            try {
+                const response = await fetch(`${API_BASE}/portfolio/${currentUser.id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    updatePortfolioDisplay(data.data);
+                } else {
+                    console.error('Failed to load portfolio:', data.error);
+                }
+            } catch (error) {
+                console.error('Error loading portfolio:', error);
+            }
+        }
+
+        function updatePortfolioDisplay(portfolio) {
+            // Update balance information
+            document.getElementById('availableBalance').textContent = `$${portfolio.availableBalance.toFixed(2)}`;
+            document.getElementById('totalValue').textContent = `$${portfolio.totalValue.toFixed(2)}`;
+            
+            const plElement = document.getElementById('todaysPL');
+            plElement.textContent = `${portfolio.todaysPL >= 0 ? '+' : ''}$${portfolio.todaysPL.toFixed(2)}`;
+            plElement.className = `balance-value ${portfolio.todaysPL >= 0 ? 'positive' : 'negative'}`;
+
+            // Update holdings
+            const holdingsGrid = document.getElementById('holdingsGrid');
+            
+            if (portfolio.seasonHoldings && portfolio.seasonHoldings.length > 0) {
+                holdingsGrid.innerHTML = portfolio.seasonHoldings.map(holding => `
+                    <div class="holding-card">
+                        <div style="font-weight: bold; margin-bottom: 5px;">${holding.playerName}</div>
+                        <div>${holding.shares} shares @ $${holding.averagePrice.toFixed(2)}</div>
+                        <div>Current: $${holding.currentPrice.toFixed(2)}</div>
+                        <div class="${holding.unrealizedPL >= 0 ? 'positive' : 'negative'}">
+                            P&L: ${holding.unrealizedPL >= 0 ? '+' : ''}$${holding.unrealizedPL.toFixed(2)}
+                            (${holding.unrealizedPLPercent >= 0 ? '+' : ''}${holding.unrealizedPLPercent.toFixed(2)}%)
+                        </div>
+                        <div>Value: $${holding.totalValue.toFixed(2)}</div>
+                    </div>
+                `).join('');
+            } else {
+                holdingsGrid.innerHTML = 'No holdings yet - buy some stocks!';
+            }
+        }
+
+        // Chat functions
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (message && socket) {
+                socket.emit('send_chat_message', message);
+                input.value = '';
+            }
+        }
+
+        function handleChatKeypress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function addChatMessage(message) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            
+            const time = new Date().toLocaleTimeString('en-US', { 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            
+            messageDiv.innerHTML = `
+                <span class="message-user">[${time}] ${message.username}:</span>
+                ${message.message}
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // CSS animation for price updates
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+                100% { transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Auto-generate random usernames for demo
+        function generateRandomUsername() {
+            const adjectives = ['Cool', 'Fast', 'Smart', 'Lucky', 'Epic', 'Awesome', 'Pro', 'Elite'];
+            const nouns = ['Trader', 'Player', 'Investor', 'Bull', 'Bear', 'Shark', 'Eagle', 'Lion'];
+            const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+            const noun = nouns[Math.floor(Math.random() * nouns.length)];
+            const num = Math.floor(Math.random() * 999);
+            return `${adj}${noun}${num}`;
+        }
+
+        // Set random demo data on load
+        window.onload = function() {
+            document.getElementById('username').value = generateRandomUsername();
+            document.getElementById('email').value = `demo${Math.floor(Math.random() * 9999)}@test.com`;
+        };
+    </script>
+</body>
+</html>

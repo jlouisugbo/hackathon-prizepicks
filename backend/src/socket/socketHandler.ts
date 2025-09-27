@@ -1,17 +1,21 @@
 import { Server, Socket } from 'socket.io';
 import { SocketEvents, ChatMessage, NotificationData } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+import { authService } from '../services/authService';
 
 interface ConnectedUser {
   userId: string;
   username: string;
+  email: string;
   socketId: string;
   joinedAt: number;
+  isAuthenticated: boolean;
 }
 
 // Store connected users
 const connectedUsers = new Map<string, ConnectedUser>();
 const userRooms = new Map<string, Set<string>>(); // userId -> Set of room names
+const socketToUser = new Map<string, string>(); // socketId -> userId
 
 export function initializeSocketHandlers(io: Server) {
   console.log('🔌 Initializing Socket.IO handlers...');
@@ -19,38 +23,82 @@ export function initializeSocketHandlers(io: Server) {
   io.on('connection', (socket: Socket) => {
     console.log(`👤 User connected: ${socket.id}`);
 
-    // Handle user joining
-    socket.on('join_room', (data: { userId: string; username: string }) => {
-      const { userId, username } = data;
+    // Handle user joining with authentication
+    socket.on('join_room', async (data: { userId?: string; username?: string; token?: string }) => {
+      let user: ConnectedUser;
+
+      // Try to authenticate with token first
+      if (data.token) {
+        try {
+          const decoded = authService.verifyToken(data.token);
+          const authUser = await authService.getUserById(decoded.id);
+          
+          if (authUser) {
+            user = {
+              userId: authUser.id,
+              username: authUser.username,
+              email: authUser.email,
+              socketId: socket.id,
+              joinedAt: Date.now(),
+              isAuthenticated: true
+            };
+
+            // Update user session in database
+            await authService.updateUserSession(authUser.id, socket.id, true);
+          } else {
+            throw new Error('User not found');
+          }
+        } catch (error) {
+          console.error('Authentication failed for socket:', error);
+          
+          // Fall back to guest user
+          user = {
+            userId: data.userId || `guest_${socket.id}`,
+            username: data.username || `Guest_${socket.id.substring(0, 6)}`,
+            email: '',
+            socketId: socket.id,
+            joinedAt: Date.now(),
+            isAuthenticated: false
+          };
+        }
+      } else {
+        // Guest user (for demo)
+        user = {
+          userId: data.userId || `guest_${socket.id}`,
+          username: data.username || `Guest_${socket.id.substring(0, 6)}`,
+          email: '',
+          socketId: socket.id,
+          joinedAt: Date.now(),
+          isAuthenticated: false
+        };
+      }
 
       // Store user info
-      connectedUsers.set(socket.id, {
-        userId,
-        username,
-        socketId: socket.id,
-        joinedAt: Date.now()
-      });
+      connectedUsers.set(socket.id, user);
+      socketToUser.set(socket.id, user.userId);
 
       // Join general rooms
       socket.join('general'); // All users
-      socket.join(`user:${userId}`); // User-specific room
+      socket.join(`user:${user.userId}`); // User-specific room
 
       // Initialize user rooms set
-      if (!userRooms.has(userId)) {
-        userRooms.set(userId, new Set());
+      if (!userRooms.has(user.userId)) {
+        userRooms.set(user.userId, new Set());
       }
-      userRooms.get(userId)!.add('general');
-      userRooms.get(userId)!.add(`user:${userId}`);
+      userRooms.get(user.userId)!.add('general');
+      userRooms.get(user.userId)!.add(`user:${user.userId}`);
 
-      console.log(`✅ User ${username} (${userId}) joined room: general`);
+      console.log(`✅ User ${user.username} (${user.userId}) joined room: general`);
 
       // Send welcome message
       const welcomeNotification = {
         id: uuidv4(),
-        userId,
+        userId: user.userId,
         type: 'system' as const,
-        title: 'Welcome!',
-        message: 'Connected to Player Stock Market',
+        title: user.isAuthenticated ? 'Welcome back!' : 'Welcome, Guest!',
+        message: user.isAuthenticated 
+          ? `Authenticated as ${user.username}` 
+          : 'Connected as guest user',
         timestamp: Date.now(),
         isRead: false
       };
@@ -182,14 +230,20 @@ export function initializeSocketHandlers(io: Server) {
     });
 
     // Handle disconnection
-    socket.on('disconnect', (reason) => {
+    socket.on('disconnect', async (reason) => {
       const user = connectedUsers.get(socket.id);
       if (user) {
         console.log(`👋 User ${user.username} disconnected: ${reason}`);
 
+        // Update user session in database if authenticated
+        if (user.isAuthenticated) {
+          await authService.updateUserSession(user.userId, socket.id, false);
+        }
+
         // Clean up user rooms
         userRooms.delete(user.userId);
         connectedUsers.delete(socket.id);
+        socketToUser.delete(socket.id);
 
         // Broadcast updated user count
         io.to('general').emit('user_count', connectedUsers.size);

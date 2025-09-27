@@ -1,15 +1,23 @@
 import express from 'express';
 import { getPortfolios, getUsers, portfolios } from '../data/mockData';
+import { databaseService } from '../services/databaseService';
 import { ApiResponse, Portfolio } from '../types';
 
 const router = express.Router();
 
 // GET /api/portfolio/:userId - Get user portfolio
-router.get('/:userId', (req, res) => {
+router.get('/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    const portfolioList = getPortfolios();
-    const portfolio = portfolioList.find(p => p.userId === userId);
+    
+    // Try to get from Supabase first
+    let portfolio = await databaseService.getPortfolioByUserId(userId);
+    
+    // Fallback to mock data if Supabase is not configured
+    if (!portfolio) {
+      const portfolioList = getPortfolios();
+      portfolio = portfolioList.find(p => p.userId === userId) || null;
+    }
 
     if (!portfolio) {
       return res.status(404).json({

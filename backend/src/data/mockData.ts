@@ -182,6 +182,28 @@ export function initializeMockData() {
     }
   }));
 
+  // Add demo user for testing
+  users.push({
+    id: 'demo-user',
+    username: 'DemoTrader',
+    email: 'demo@example.com',
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DemoTrader',
+    joinDate: Date.now(),
+    totalPortfolioValue: 10000,
+    seasonRank: 11,
+    liveRank: 11,
+    badges: [],
+    stats: {
+      totalTrades: 0,
+      winRate: 0,
+      bestDay: 0,
+      worstDay: 0,
+      longestStreak: 0,
+      totalProfit: 0,
+      avgHoldTime: 0
+    }
+  });
+
   // Create mock portfolios with realistic holdings
   portfolios = users.map(user => {
     const seasonHoldings = [];
@@ -349,4 +371,268 @@ export const updateGameScore = (homeScore: number, awayScore: number, quarter: n
     currentGame.quarter = quarter;
     currentGame.timeRemaining = timeRemaining;
   }
+};
+
+// Portfolio management functions for trading engine
+export const executeTradeOrder = (userId: string, playerId: string, shares: number, type: 'buy' | 'sell', accountType: 'season' | 'live'): { success: boolean; error?: string; trade?: Trade } => {
+  const portfolio = portfolios.find(p => p.userId === userId);
+  const player = players.find(p => p.id === playerId);
+  
+  if (!portfolio || !player) {
+    return { success: false, error: 'Portfolio or player not found' };
+  }
+
+  const tradeAmount = shares * player.currentPrice;
+  
+  // Check if live trading and trades remaining
+  if (accountType === 'live' && portfolio.tradesRemaining <= 0) {
+    return { success: false, error: 'No trades remaining for live account' };
+  }
+
+  // Check balance for buy orders
+  if (type === 'buy' && portfolio.availableBalance < tradeAmount) {
+    return { success: false, error: 'Insufficient balance' };
+  }
+
+  // Execute the trade
+  const trade: Trade = {
+    id: uuidv4(),
+    userId,
+    playerId,
+    playerName: player.name,
+    type,
+    orderType: 'market',
+    shares,
+    price: player.currentPrice,
+    timestamp: Date.now(),
+    accountType,
+    status: 'executed',
+    totalAmount: Math.round(tradeAmount * 100) / 100
+  };
+
+  // Update holdings
+  const holdings = accountType === 'season' ? portfolio.seasonHoldings : portfolio.liveHoldings;
+  const existingHolding = holdings.find(h => h.playerId === playerId);
+
+  if (type === 'buy') {
+    if (existingHolding) {
+      // Update existing position
+      const newShares = existingHolding.shares + shares;
+      const newAveragePrice = ((existingHolding.shares * existingHolding.averagePrice) + tradeAmount) / newShares;
+      
+      existingHolding.shares = newShares;
+      existingHolding.averagePrice = Math.round(newAveragePrice * 100) / 100;
+      existingHolding.totalValue = Math.round(newShares * player.currentPrice * 100) / 100;
+      existingHolding.unrealizedPL = Math.round((existingHolding.totalValue - (newShares * existingHolding.averagePrice)) * 100) / 100;
+      existingHolding.unrealizedPLPercent = Math.round((existingHolding.unrealizedPL / (newShares * existingHolding.averagePrice)) * 100 * 100) / 100;
+    } else {
+      // Create new position
+      holdings.push({
+        playerId,
+        playerName: player.name,
+        shares,
+        averagePrice: player.currentPrice,
+        currentPrice: player.currentPrice,
+        totalValue: tradeAmount,
+        unrealizedPL: 0,
+        unrealizedPLPercent: 0,
+        purchaseDate: Date.now()
+      });
+    }
+    portfolio.availableBalance -= tradeAmount;
+  } else { // sell
+    if (!existingHolding || existingHolding.shares < shares) {
+      return { success: false, error: 'Insufficient shares to sell' };
+    }
+    
+    existingHolding.shares -= shares;
+    existingHolding.totalValue = Math.round(existingHolding.shares * player.currentPrice * 100) / 100;
+    
+    if (existingHolding.shares === 0) {
+      const index = holdings.indexOf(existingHolding);
+      holdings.splice(index, 1);
+    } else {
+      existingHolding.unrealizedPL = Math.round((existingHolding.totalValue - (existingHolding.shares * existingHolding.averagePrice)) * 100) / 100;
+      existingHolding.unrealizedPLPercent = Math.round((existingHolding.unrealizedPL / (existingHolding.shares * existingHolding.averagePrice)) * 100 * 100) / 100;
+    }
+    
+    portfolio.availableBalance += tradeAmount;
+  }
+
+  // Update portfolio totals
+  const newSeasonValue = portfolio.seasonHoldings.reduce((sum, h) => sum + h.totalValue, 0);
+  const newLiveValue = portfolio.liveHoldings.reduce((sum, h) => sum + h.totalValue, 0);
+  portfolio.totalValue = Math.round((newSeasonValue + newLiveValue + portfolio.availableBalance) * 100) / 100;
+  
+  // Reduce trades remaining for live trades
+  if (accountType === 'live') {
+    portfolio.tradesRemaining = Math.max(0, portfolio.tradesRemaining - 1);
+  }
+  
+  portfolio.lastUpdated = Date.now();
+  
+  // Add trade to history
+  addTrade(trade);
+  
+  return { success: true, trade };
+};
+
+// Sync portfolio values with current prices (called when prices update)
+export const syncPortfoliosWithPrices = () => {
+  portfolios.forEach(portfolio => {
+    let totalValue = portfolio.availableBalance;
+    
+    // Update season holdings
+    portfolio.seasonHoldings.forEach(holding => {
+      const player = players.find(p => p.id === holding.playerId);
+      if (player) {
+        holding.currentPrice = player.currentPrice;
+        holding.totalValue = Math.round(holding.shares * player.currentPrice * 100) / 100;
+        holding.unrealizedPL = Math.round((holding.totalValue - (holding.shares * holding.averagePrice)) * 100) / 100;
+        holding.unrealizedPLPercent = Math.round((holding.unrealizedPL / (holding.shares * holding.averagePrice)) * 100 * 100) / 100;
+        totalValue += holding.totalValue;
+      }
+    });
+    
+    // Update live holdings
+    portfolio.liveHoldings.forEach(holding => {
+      const player = players.find(p => p.id === holding.playerId);
+      if (player) {
+        holding.currentPrice = player.currentPrice;
+        holding.totalValue = Math.round(holding.shares * player.currentPrice * 100) / 100;
+        holding.unrealizedPL = Math.round((holding.totalValue - (holding.shares * holding.averagePrice)) * 100) / 100;
+        holding.unrealizedPLPercent = Math.round((holding.unrealizedPL / (holding.shares * holding.averagePrice)) * 100 * 100) / 100;
+        totalValue += holding.totalValue;
+      }
+    });
+    
+    portfolio.totalValue = Math.round(totalValue * 100) / 100;
+    portfolio.lastUpdated = Date.now();
+  });
+};
+
+// Limit Order System
+interface LimitOrder {
+  id: string;
+  userId: string;
+  playerId: string;
+  playerName: string;
+  type: 'buy' | 'sell';
+  shares: number;
+  limitPrice: number;
+  accountType: 'season' | 'live';
+  status: 'pending' | 'executed' | 'cancelled';
+  createdAt: number;
+  expiresAt: number;
+}
+
+export let limitOrders: LimitOrder[] = [];
+
+export const createLimitOrder = (userId: string, playerId: string, shares: number, type: 'buy' | 'sell', limitPrice: number, accountType: 'season' | 'live'): { success: boolean; error?: string; order?: LimitOrder } => {
+  const player = players.find(p => p.id === playerId);
+  const portfolio = portfolios.find(p => p.userId === userId);
+  
+  if (!player || !portfolio) {
+    return { success: false, error: 'Player or portfolio not found' };
+  }
+
+  const order: LimitOrder = {
+    id: uuidv4(),
+    userId,
+    playerId,
+    playerName: player.name,
+    type,
+    shares,
+    limitPrice,
+    accountType,
+    status: 'pending',
+    createdAt: Date.now(),
+    expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+  };
+
+  limitOrders.push(order);
+  return { success: true, order };
+};
+
+export const checkLimitOrders = () => {
+  const now = Date.now();
+  
+  limitOrders.forEach(order => {
+    if (order.status !== 'pending') return;
+    
+    // Check if expired
+    if (now > order.expiresAt) {
+      order.status = 'cancelled';
+      return;
+    }
+    
+    const player = players.find(p => p.id === order.playerId);
+    if (!player) return;
+    
+    // Check if limit price conditions are met
+    let shouldExecute = false;
+    if (order.type === 'buy' && player.currentPrice <= order.limitPrice) {
+      shouldExecute = true;
+    } else if (order.type === 'sell' && player.currentPrice >= order.limitPrice) {
+      shouldExecute = true;
+    }
+    
+    if (shouldExecute) {
+      const result = executeTradeOrder(order.userId, order.playerId, order.shares, order.type, order.accountType);
+      if (result.success) {
+        order.status = 'executed';
+      }
+    }
+  });
+  
+  // Remove old cancelled/executed orders (keep last 100)
+  limitOrders = limitOrders.filter(order => {
+    if (order.status === 'pending') {
+      return true;
+    }
+    // Keep recent cancelled/executed orders for 7 days
+    return now - order.createdAt < 7 * 24 * 60 * 60 * 1000;
+  }).slice(-100);
+};
+
+export const getLimitOrders = () => limitOrders;
+export const getUserLimitOrders = (userId: string) => 
+  limitOrders.filter(order => order.userId === userId && order.status === 'pending');
+
+// User Management Functions (for demo mode without database)
+const demoUsers = new Map<string, any>();
+const demoSessions = new Map<string, { userId: string; socketId: string; lastSeen: Date }>();
+
+export const addDemoUser = (user: any) => {
+  demoUsers.set(user.id, user);
+  console.log(`📝 Demo user added: ${user.username} (${user.id})`);
+};
+
+export const getDemoUser = (userId: string) => {
+  return demoUsers.get(userId);
+};
+
+export const getDemoUserByEmail = (email: string) => {
+  for (const user of demoUsers.values()) {
+    if (user.email === email) {
+      return user;
+    }
+  }
+  return null;
+};
+
+export const updateDemoUserSession = (userId: string, socketId: string, isOnline: boolean = true) => {
+  if (isOnline) {
+    demoSessions.set(userId, { userId, socketId, lastSeen: new Date() });
+  } else {
+    demoSessions.delete(userId);
+  }
+};
+
+export const getDemoOnlineUsersCount = () => {
+  return demoSessions.size;
+};
+
+export const getAllDemoUsers = () => {
+  return Array.from(demoUsers.values());
 };

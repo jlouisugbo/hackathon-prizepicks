@@ -1,6 +1,7 @@
 import express from 'express';
 import { getPlayers } from '../data/mockData';
 import { ApiResponse, Player } from '../types';
+import PriceEngine from '../utils/priceEngine';
 
 const router = express.Router();
 
@@ -214,6 +215,106 @@ router.get('/trending/losers', (req, res) => {
       success: false,
       error: 'Failed to fetch losers',
       message: 'An error occurred while retrieving top losers'
+    });
+  }
+});
+
+// REST endpoints for Joel's Socket system
+
+// GET /api/players/prices - Get current prices for all players (for socket broadcasts)
+router.get('/prices', (req, res) => {
+  try {
+    const players = getPlayers();
+    const prices = players.map(player => ({
+      id: player.id,
+      name: player.name,
+      currentPrice: player.currentPrice,
+      priceChange24h: player.priceChange24h,
+      priceChangePercent24h: player.priceChangePercent24h,
+      lastUpdated: Date.now()
+    }));
+
+    res.json({
+      success: true,
+      data: prices,
+      message: `Retrieved prices for ${prices.length} players`
+    });
+  } catch (error) {
+    console.error('Error fetching prices:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch prices',
+      message: 'An error occurred while retrieving player prices'
+    });
+  }
+});
+
+// POST /api/players/:id/flash-multiplier - Trigger flash multiplier (for Joel's game events)
+router.post('/:id/flash-multiplier', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { multiplier, reason } = req.body;
+
+    if (!multiplier || typeof multiplier !== 'number' || multiplier < 1 || multiplier > 5) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid multiplier',
+        message: 'Multiplier must be a number between 1 and 5'
+      });
+    }
+
+    if (!reason || typeof reason !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid reason',
+        message: 'Reason must be provided as a string'
+      });
+    }
+
+    const priceEngine = PriceEngine.getInstance();
+    const success = priceEngine.triggerFlashMultiplier(id, multiplier, reason);
+
+    if (!success) {
+      return res.status(404).json({
+        success: false,
+        error: 'Player not found',
+        message: `Player with ID ${id} not found`
+      });
+    }
+
+    res.json({
+      success: true,
+      data: { playerId: id, multiplier, reason },
+      message: `Flash multiplier applied to player ${id}`
+    });
+  } catch (error) {
+    console.error('Error applying flash multiplier:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to apply flash multiplier',
+      message: 'An error occurred while applying flash multiplier'
+    });
+  }
+});
+
+// GET /api/players/market/data - Get market summary data (for Joel's socket broadcasts)
+router.get('/market/data', (req, res) => {
+  try {
+    const players = getPlayers();
+    const priceEngine = PriceEngine.getInstance();
+    const marketData = priceEngine.getMarketData(players);
+
+    res.json({
+      success: true,
+      data: marketData,
+      message: 'Retrieved market data'
+    });
+  } catch (error) {
+    console.error('Error fetching market data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch market data',
+      message: 'An error occurred while retrieving market data'
     });
   }
 });
