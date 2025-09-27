@@ -55,6 +55,14 @@ export interface Holding {
   purchaseDate: number;
 }
 
+export interface MarketImpact {
+  priceImpact: number;
+  priceImpactPercent: number;
+  newPrice: number;
+  impactLevel: 'minimal' | 'moderate' | 'significant' | 'major';
+  description?: string;
+}
+
 export interface Trade {
   id: string;
   userId: string;
@@ -69,6 +77,7 @@ export interface Trade {
   status: 'pending' | 'executed' | 'cancelled' | 'failed';
   multiplier?: number;
   totalAmount: number;
+  marketImpact?: MarketImpact;
 }
 
 export interface GameEvent {

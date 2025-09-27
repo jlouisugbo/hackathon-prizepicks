@@ -3,7 +3,7 @@ NIXPACKS_BUILD_CMD = "npm ci && cd shared && npm ci && npm run build && cd ../ba
 NIXPACKS_START_CMD = "cd backend && npm start"
 
 [phases.setup]
-nixPkgs = ["nodejs_18", "npm-9_x"]
+nixPkgs = ["nodejs_20", "npm-9_x"]
 
 [phases.install]
 cmds = ["npm ci", "cd shared && npm ci", "cd backend && npm ci"]

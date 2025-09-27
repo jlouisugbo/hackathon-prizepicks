@@ -105,5 +105,22 @@ server.listen(PORT, () => {
   console.log(`⚡ Socket.IO server ready`);
 });
 
+// Graceful shutdown handling for Railway
+process.on('SIGTERM', () => {
+  console.log('🛑 SIGTERM received, shutting down gracefully...');
+  server.close(() => {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('🛑 SIGINT received, shutting down gracefully...');
+  server.close(() => {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
+});
+
 export { io };
 export default app;

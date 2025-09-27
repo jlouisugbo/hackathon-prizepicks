@@ -12,6 +12,9 @@ exports.broadcastNotification = broadcastNotification;
 exports.getConnectedUsersCount = getConnectedUsersCount;
 exports.getConnectedUsers = getConnectedUsers;
 exports.broadcastChatMessage = broadcastChatMessage;
+exports.broadcastVolumeAlert = broadcastVolumeAlert;
+exports.broadcastMarketSentiment = broadcastMarketSentiment;
+exports.broadcastTradingActivity = broadcastTradingActivity;
 const uuid_1 = require("uuid");
 const authService_1 = require("../services/authService");
 // Store connected users
@@ -252,15 +255,34 @@ function broadcastGameEvent(io, gameEvent) {
 function broadcastTradeExecution(io, trade) {
     // Broadcast to user's room and general trading feed
     io.to(`user:${trade.userId}`).emit('trade_executed', trade);
-    io.to('general').emit('trade_feed', {
+    // Enhanced trade feed with market impact information
+    const tradeFeedData = {
+        id: trade.id,
         username: trade.username || 'Anonymous',
         playerName: trade.playerName,
         type: trade.type,
         shares: trade.shares,
         price: trade.price,
-        timestamp: trade.timestamp
-    });
-    console.log(`💰 Trade executed: ${trade.type} ${trade.shares} shares of ${trade.playerName}`);
+        timestamp: trade.timestamp,
+        marketImpact: trade.marketImpact
+    };
+    io.to('general').emit('trade_feed', tradeFeedData);
+    // Broadcast market impact if significant
+    if (trade.marketImpact && trade.marketImpact.description) {
+        io.to('general').emit('market_impact', {
+            playerId: trade.playerId,
+            playerName: trade.playerName,
+            tradeType: trade.type,
+            shares: trade.shares,
+            priceImpact: trade.marketImpact.priceImpact,
+            priceImpactPercent: trade.marketImpact.priceImpactPercent,
+            newPrice: trade.marketImpact.newPrice,
+            impactLevel: trade.marketImpact.impactLevel,
+            description: trade.marketImpact.description,
+            timestamp: trade.timestamp
+        });
+    }
+    console.log(`💰 Trade executed: ${trade.type} ${trade.shares} shares of ${trade.playerName}${trade.marketImpact?.impactLevel !== 'minimal' ? ` with ${trade.marketImpact.impactLevel} market impact` : ''}`);
 }
 function broadcastLeaderboardUpdate(io, type, leaderboard) {
     io.to(`leaderboard:${type}`).emit('leaderboard_update', {
@@ -288,4 +310,43 @@ function getConnectedUsers() {
 }
 function broadcastChatMessage(io, chatMessage) {
     io.to('general').emit('chat_message', chatMessage);
+}
+function broadcastVolumeAlert(io, volumeData) {
+    // Broadcast to all users when unusual trading volume is detected
+    io.to('general').emit('volume_alert', {
+        playerId: volumeData.playerId,
+        playerName: volumeData.playerName,
+        volume: volumeData.volume,
+        timeframe: volumeData.timeframe,
+        threshold: volumeData.threshold,
+        description: volumeData.description,
+        timestamp: Date.now()
+    });
+    console.log(`📈 Volume alert: ${volumeData.playerName} - ${volumeData.description}`);
+}
+function broadcastMarketSentiment(io, sentimentData) {
+    // Broadcast overall market sentiment based on trading patterns
+    io.to('general').emit('market_sentiment', {
+        sentiment: sentimentData.sentiment, // 'bullish', 'bearish', 'neutral'
+        score: sentimentData.score, // -1 to 1
+        topMovers: sentimentData.topMovers,
+        activeTraders: sentimentData.activeTraders,
+        totalVolume: sentimentData.totalVolume,
+        timestamp: Date.now()
+    });
+    console.log(`📊 Market sentiment: ${sentimentData.sentiment} (${sentimentData.score})`);
+}
+function broadcastTradingActivity(io, activityData) {
+    // Broadcast live trading activity for specific players
+    io.to('general').emit('trading_activity', {
+        playerId: activityData.playerId,
+        playerName: activityData.playerName,
+        recentTrades: activityData.recentTrades,
+        totalVolume: activityData.totalVolume,
+        priceMovement: activityData.priceMovement,
+        activeBuyers: activityData.activeBuyers,
+        activeSellers: activityData.activeSellers,
+        timestamp: Date.now()
+    });
+    console.log(`📊 Trading activity update: ${activityData.playerName}`);
 }

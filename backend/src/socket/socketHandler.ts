@@ -296,16 +296,38 @@ export function broadcastGameEvent(io: Server, gameEvent: any) {
 export function broadcastTradeExecution(io: Server, trade: any) {
   // Broadcast to user's room and general trading feed
   io.to(`user:${trade.userId}`).emit('trade_executed', trade);
-  io.to('general').emit('trade_feed', {
+
+  // Enhanced trade feed with market impact information
+  const tradeFeedData = {
+    id: trade.id,
     username: trade.username || 'Anonymous',
     playerName: trade.playerName,
     type: trade.type,
     shares: trade.shares,
     price: trade.price,
-    timestamp: trade.timestamp
-  });
+    timestamp: trade.timestamp,
+    marketImpact: trade.marketImpact
+  };
 
-  console.log(`💰 Trade executed: ${trade.type} ${trade.shares} shares of ${trade.playerName}`);
+  io.to('general').emit('trade_feed', tradeFeedData);
+
+  // Broadcast market impact if significant
+  if (trade.marketImpact && trade.marketImpact.description) {
+    io.to('general').emit('market_impact', {
+      playerId: trade.playerId,
+      playerName: trade.playerName,
+      tradeType: trade.type,
+      shares: trade.shares,
+      priceImpact: trade.marketImpact.priceImpact,
+      priceImpactPercent: trade.marketImpact.priceImpactPercent,
+      newPrice: trade.marketImpact.newPrice,
+      impactLevel: trade.marketImpact.impactLevel,
+      description: trade.marketImpact.description,
+      timestamp: trade.timestamp
+    });
+  }
+
+  console.log(`💰 Trade executed: ${trade.type} ${trade.shares} shares of ${trade.playerName}${trade.marketImpact?.impactLevel !== 'minimal' ? ` with ${trade.marketImpact.impactLevel} market impact` : ''}`);
 }
 
 export function broadcastLeaderboardUpdate(io: Server, type: string, leaderboard: any[]) {
@@ -341,4 +363,49 @@ export function getConnectedUsers(): ConnectedUser[] {
 
 export function broadcastChatMessage(io: Server, chatMessage: ChatMessage) {
   io.to('general').emit('chat_message', chatMessage);
+}
+
+export function broadcastVolumeAlert(io: Server, volumeData: any) {
+  // Broadcast to all users when unusual trading volume is detected
+  io.to('general').emit('volume_alert', {
+    playerId: volumeData.playerId,
+    playerName: volumeData.playerName,
+    volume: volumeData.volume,
+    timeframe: volumeData.timeframe,
+    threshold: volumeData.threshold,
+    description: volumeData.description,
+    timestamp: Date.now()
+  });
+
+  console.log(`📈 Volume alert: ${volumeData.playerName} - ${volumeData.description}`);
+}
+
+export function broadcastMarketSentiment(io: Server, sentimentData: any) {
+  // Broadcast overall market sentiment based on trading patterns
+  io.to('general').emit('market_sentiment', {
+    sentiment: sentimentData.sentiment, // 'bullish', 'bearish', 'neutral'
+    score: sentimentData.score, // -1 to 1
+    topMovers: sentimentData.topMovers,
+    activeTraders: sentimentData.activeTraders,
+    totalVolume: sentimentData.totalVolume,
+    timestamp: Date.now()
+  });
+
+  console.log(`📊 Market sentiment: ${sentimentData.sentiment} (${sentimentData.score})`);
+}
+
+export function broadcastTradingActivity(io: Server, activityData: any) {
+  // Broadcast live trading activity for specific players
+  io.to('general').emit('trading_activity', {
+    playerId: activityData.playerId,
+    playerName: activityData.playerName,
+    recentTrades: activityData.recentTrades,
+    totalVolume: activityData.totalVolume,
+    priceMovement: activityData.priceMovement,
+    activeBuyers: activityData.activeBuyers,
+    activeSellers: activityData.activeSellers,
+    timestamp: Date.now()
+  });
+
+  console.log(`📊 Trading activity update: ${activityData.playerName}`);
 }

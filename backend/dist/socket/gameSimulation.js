@@ -12,12 +12,12 @@ let flashMultiplierInterval = null;
 let gameEventInterval = null;
 let priceUpdateInterval = null;
 let scoreUpdateInterval = null;
-// Configuration
-const PRICE_UPDATE_INTERVAL = 8000; // 8 seconds
+// Configuration - Optimized for Railway memory limits
+const PRICE_UPDATE_INTERVAL = 10000; // 10 seconds (reduced frequency)
 const FLASH_MULTIPLIER_CHANCE = 0.15; // 15% chance per interval
-const GAME_EVENT_INTERVAL = 45000; // 45 seconds
-const MARKET_DATA_INTERVAL = 30000; // 30 seconds
-const SCORE_UPDATE_INTERVAL = 12000; // 12 seconds for score updates
+const GAME_EVENT_INTERVAL = 60000; // 60 seconds (reduced frequency)
+const MARKET_DATA_INTERVAL = 45000; // 45 seconds (reduced frequency)
+const SCORE_UPDATE_INTERVAL = 15000; // 15 seconds (reduced frequency)
 // Active flash multipliers
 const activeFlashMultipliers = new Map();
 // Pre-scripted game events for demo

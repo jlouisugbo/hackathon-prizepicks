@@ -8,6 +8,8 @@ const uuid_1 = require("uuid");
 const mockData_1 = require("../data/mockData");
 const databaseService_1 = require("../services/databaseService");
 const authService_1 = require("../services/authService");
+const marketImpact_1 = require("../utils/marketImpact");
+const socketHandler_1 = require("../socket/socketHandler");
 const router = express_1.default.Router();
 // POST /api/trades - Execute trade (simplified endpoint for demo)
 router.post('/', async (req, res) => {
@@ -68,6 +70,8 @@ router.post('/', async (req, res) => {
             });
         }
         const currentPrice = player.currentPrice;
+        // Calculate market impact before executing trade
+        const marketImpact = marketImpact_1.MarketImpactCalculator.calculateTradeImpact(playerId, type, shares, currentPrice);
         const totalAmount = shares * currentPrice;
         // Try to execute trade using database service first
         let tradeResult;
@@ -81,6 +85,15 @@ router.post('/', async (req, res) => {
             tradeResult = (0, mockData_1.executeTradeOrder)(userId, playerId, shares, type, accountType);
         }
         if (tradeResult.success) {
+            // Apply market impact to player price if significant
+            if (marketImpact.broadcastRequired && Math.abs(marketImpact.priceImpact) > 0.01) {
+                (0, mockData_1.updatePlayerPrice)(playerId, marketImpact.newPrice);
+                // Broadcast price update to all connected users
+                const io = req.app.get('io');
+                if (io) {
+                    (0, socketHandler_1.broadcastPriceUpdate)(io, playerId, marketImpact.newPrice, marketImpact.priceImpact, marketImpact.priceImpactPercent);
+                }
+            }
             const trade = {
                 id: (0, uuid_1.v4)(),
                 userId,
@@ -94,12 +107,35 @@ router.post('/', async (req, res) => {
                 accountType,
                 status: 'executed',
                 totalAmount,
-                multiplier: 1.0
+                multiplier: marketImpact_1.MarketImpactCalculator.calculateFlashMultiplier(marketImpact)
             };
+            // Broadcast trade execution to all users if significant
+            if (marketImpact.broadcastRequired) {
+                const io = req.app.get('io');
+                if (io) {
+                    (0, socketHandler_1.broadcastTradeExecution)(io, {
+                        ...trade,
+                        marketImpact: {
+                            priceImpact: marketImpact.priceImpact,
+                            priceImpactPercent: marketImpact.priceImpactPercent,
+                            impactLevel: marketImpact.impactLevel,
+                            description: marketImpact_1.MarketImpactCalculator.getImpactDescription(marketImpact.impactLevel, shares, player.name)
+                        }
+                    });
+                }
+            }
             const response = {
                 success: true,
-                data: trade,
-                message: `${type.toUpperCase()} order executed successfully`
+                data: {
+                    ...trade,
+                    marketImpact: {
+                        priceImpact: marketImpact.priceImpact,
+                        priceImpactPercent: marketImpact.priceImpactPercent,
+                        newPrice: marketImpact.newPrice,
+                        impactLevel: marketImpact.impactLevel
+                    }
+                },
+                message: `${type.toUpperCase()} order executed successfully${marketImpact.broadcastRequired ? ` with ${marketImpact.impactLevel} market impact` : ''}`
             };
             res.json(response);
         }
