@@ -201,6 +201,7 @@ async function executeTradeWithDatabase(
 
     // Record the trade
     await databaseService.createTrade(userId, {
+      userId,
       playerId,
       playerName,
       type,
