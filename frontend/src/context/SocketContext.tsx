@@ -11,7 +11,8 @@ import {
   MarketData,
   NotificationData,
   Trade,
-  Portfolio
+  Portfolio,
+  LiveGame
 } from '../../../shared/src/types';
 
 interface SocketContextType {
@@ -25,6 +26,7 @@ interface SocketContextType {
   marketData: MarketData | null;
   notifications: NotificationData[];
   userCount: number;
+  liveGame: LiveGame | null;
 
   // Socket actions
   joinRoom: (userId: string, username: string) => void;
@@ -55,6 +57,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [marketData, setMarketData] = useState<MarketData | null>(null);
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [userCount, setUserCount] = useState(0);
+  const [liveGame, setLiveGame] = useState<LiveGame | null>(null);
 
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const reconnectAttempts = useRef(0);
@@ -183,6 +186,34 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       console.log('🏓 Pong received, latency:', Date.now() - data.timestamp, 'ms');
     });
 
+    newSocket.on('game_score_update', (data: {
+      homeScore: number;
+      awayScore: number;
+      quarter: number;
+      timeRemaining: string;
+      lastScore?: {
+        team: 'home' | 'away';
+        points: number;
+        teamName: string;
+      };
+    }) => {
+      setLiveGame(prev => {
+        if (!prev) return prev;
+
+        return {
+          ...prev,
+          homeScore: data.homeScore,
+          awayScore: data.awayScore,
+          quarter: data.quarter,
+          timeRemaining: data.timeRemaining,
+        };
+      });
+
+      if (data.lastScore) {
+        console.log(`🏀 ${data.lastScore.teamName} scores ${data.lastScore.points} points!`);
+      }
+    });
+
     setSocket(newSocket);
   };
 
@@ -273,6 +304,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     marketData,
     notifications,
     userCount,
+    liveGame,
     joinRoom,
     sendChatMessage,
     subscribeToPlayer,

@@ -25,7 +25,9 @@
       "Bash(curl -s \"https://hackathon-prizepicks-production.up.railway.app/api/portfolio/d030067d-50aa-44c7-bc14-675af13fbb6a\")",
       "Bash(curl -s \"https://hackathon-prizepicks-production.up.railway.app/api/portfolio/d030067d-50aa-44c7-bc14-675af13fbb6a\" -H \"user-id: d030067d-50aa-44c7-bc14-675af13fbb6a\")",
       "Bash(curl -s \"https://hackathon-prizepicks-production.up.railway.app/api/auth/online-count\")",
-      "Bash(curl -s -X POST \"https://hackathon-prizepicks-production.up.railway.app/api/auth/demo-login\" -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"test@example.com\"\"}\")"
+      "Bash(curl -s -X POST \"https://hackathon-prizepicks-production.up.railway.app/api/auth/demo-login\" -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"test@example.com\"\"}\")",
+      "Bash(curl -s -X POST \"https://hackathon-prizepicks-production.up.railway.app/api/auth/demo-login\" -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"test@example.com\"\",\"\"username\"\":\"\"TestUser\"\"}\")",
+      "Bash(curl -s -X POST \"https://hackathon-prizepicks-production.up.railway.app/api/auth/register\" -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"newuser@example.com\"\",\"\"password\"\":\"\"test123\"\",\"\"username\"\":\"\"NewUser\"\"}\")"
     ],
     "deny": [],
     "ask": []

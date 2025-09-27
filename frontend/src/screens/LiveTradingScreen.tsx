@@ -30,12 +30,13 @@ import { Player, TradeRequest, FlashMultiplier } from '../../../../shared/src/ty
 const { width } = Dimensions.get('window');
 
 export default function LiveTradingScreen() {
-  const { currentGame, players, loading, executeTrade } = useGame();
+  const { players, loading, executeTrade } = useGame();
   const {
     flashMultipliers,
     gameEvents,
     isConnected,
-    joinLiveTrading
+    joinLiveTrading,
+    liveGame
   } = useSocket();
   const { portfolio, refreshPortfolio } = usePortfolio();
 
@@ -86,7 +87,7 @@ export default function LiveTradingScreen() {
   };
 
   const renderGameHeader = () => {
-    if (!currentGame) {
+    if (!liveGame) {
       return (
         <View style={styles.noGameContainer}>
           <Ionicons name="basketball-outline" size={64} color={theme.colors.neutral} />
@@ -107,15 +108,15 @@ export default function LiveTradingScreen() {
             <Text style={styles.liveText}>LIVE</Text>
           </View>
           <Text style={styles.gameTime}>
-            Q{currentGame.quarter} • {currentGame.timeRemaining}
+            Q{liveGame.quarter} • {liveGame.timeRemaining}
           </Text>
         </View>
 
         {/* Score */}
         <View style={styles.scoreContainer}>
           <View style={styles.teamContainer}>
-            <Text style={styles.teamName}>{currentGame.awayTeam}</Text>
-            <Text style={styles.teamScore}>{currentGame.awayScore}</Text>
+            <Text style={styles.teamName}>{liveGame.awayTeam}</Text>
+            <Text style={styles.teamScore}>{liveGame.awayScore}</Text>
           </View>
 
           <View style={styles.scoreDivider}>
@@ -123,8 +124,8 @@ export default function LiveTradingScreen() {
           </View>
 
           <View style={styles.teamContainer}>
-            <Text style={styles.teamName}>{currentGame.homeTeam}</Text>
-            <Text style={styles.teamScore}>{currentGame.homeScore}</Text>
+            <Text style={styles.teamName}>{liveGame.homeTeam}</Text>
+            <Text style={styles.teamScore}>{liveGame.homeScore}</Text>
           </View>
         </View>
 
@@ -180,15 +181,15 @@ export default function LiveTradingScreen() {
     }
 
     // Filter for active players if game is live, otherwise show all
-    const displayPlayers = currentGame
-      ? players.filter(p => currentGame.activePlayers.includes(p.id))
+    const displayPlayers = liveGame
+      ? players.filter(p => liveGame.activePlayers.includes(p.id))
       : players;
 
     return (
       <View style={styles.playersSection}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>
-            {currentGame ? 'Live Players' : 'All Players'}
+            {liveGame ? 'Live Players' : 'All Players'}
           </Text>
           <Text style={styles.sectionSubtitle}>
             {displayPlayers.length} players available
@@ -211,7 +212,7 @@ export default function LiveTradingScreen() {
                 onBuy={() => handleQuickBuy(player)}
                 onSell={() => handleQuickSell(player)}
                 flashMultiplier={multiplier}
-                isLive={currentGame?.activePlayers.includes(player.id)}
+                isLive={liveGame?.activePlayers.includes(player.id)}
                 compact={false}
               />
             );
@@ -222,7 +223,7 @@ export default function LiveTradingScreen() {
   };
 
   const renderRecentEvents = () => {
-    if (gameEvents.length === 0 || !currentGame) return null;
+    if (gameEvents.length === 0 || !liveGame) return null;
 
     return (
       <View style={styles.eventsSection}>
