@@ -182,6 +182,28 @@ export function initializeMockData() {
     }
   }));
 
+  // Add demo user for testing
+  users.push({
+    id: 'demo-user',
+    username: 'DemoTrader',
+    email: 'demo@example.com',
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DemoTrader',
+    joinDate: Date.now(),
+    totalPortfolioValue: 10000,
+    seasonRank: 11,
+    liveRank: 11,
+    badges: [],
+    stats: {
+      totalTrades: 0,
+      winRate: 0,
+      bestDay: 0,
+      worstDay: 0,
+      longestStreak: 0,
+      totalProfit: 0,
+      avgHoldTime: 0
+    }
+  });
+
   // Create mock portfolios with realistic holdings
   portfolios = users.map(user => {
     const seasonHoldings = [];
@@ -576,3 +598,41 @@ export const checkLimitOrders = () => {
 export const getLimitOrders = () => limitOrders;
 export const getUserLimitOrders = (userId: string) => 
   limitOrders.filter(order => order.userId === userId && order.status === 'pending');
+
+// User Management Functions (for demo mode without database)
+const demoUsers = new Map<string, any>();
+const demoSessions = new Map<string, { userId: string; socketId: string; lastSeen: Date }>();
+
+export const addDemoUser = (user: any) => {
+  demoUsers.set(user.id, user);
+  console.log(`📝 Demo user added: ${user.username} (${user.id})`);
+};
+
+export const getDemoUser = (userId: string) => {
+  return demoUsers.get(userId);
+};
+
+export const getDemoUserByEmail = (email: string) => {
+  for (const user of demoUsers.values()) {
+    if (user.email === email) {
+      return user;
+    }
+  }
+  return null;
+};
+
+export const updateDemoUserSession = (userId: string, socketId: string, isOnline: boolean = true) => {
+  if (isOnline) {
+    demoSessions.set(userId, { userId, socketId, lastSeen: new Date() });
+  } else {
+    demoSessions.delete(userId);
+  }
+};
+
+export const getDemoOnlineUsersCount = () => {
+  return demoSessions.size;
+};
+
+export const getAllDemoUsers = () => {
+  return Array.from(demoUsers.values());
+};

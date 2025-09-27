@@ -1,12 +1,19 @@
+// Load environment variables first, before any other imports
+import dotenv from 'dotenv';
+import path from 'path';
+
+const envPath = path.resolve(__dirname, '../.env');
+dotenv.config({ path: envPath });
+
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { initializeSocketHandlers } from './socket/socketHandler';
 import { initializeMockData, getPlayers } from './data/mockData';
 import { startGameSimulation } from './socket/gameSimulation';
 import PriceEngine from './utils/priceEngine';
+import { initializeSupabaseTables } from './config/supabase';
 
 // Import routes
 import playersRouter from './routes/players';
@@ -14,8 +21,7 @@ import portfolioRouter from './routes/portfolio';
 import tradesRouter from './routes/trades';
 import leaderboardRouter from './routes/leaderboard';
 import gameRouter from './routes/game';
-
-dotenv.config();
+import authRouter from './routes/auth';
 
 const app = express();
 const server = createServer(app);
@@ -37,6 +43,9 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files for demo
+app.use(express.static('public'));
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
@@ -47,6 +56,7 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes
+app.use('/api/auth', authRouter);
 app.use('/api/players', playersRouter);
 app.use('/api/portfolio', portfolioRouter);
 app.use('/api/trades', tradesRouter);
@@ -75,6 +85,9 @@ app.use('*', (req, res) => {
 // Initialize mock data and socket handlers
 initializeMockData();
 initializeSocketHandlers(io);
+
+// Initialize Supabase (optional for demo)
+initializeSupabaseTables();
 
 // Start game simulation
 startGameSimulation(io);
