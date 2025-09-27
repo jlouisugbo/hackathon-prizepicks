@@ -12,7 +12,7 @@ import {
   NotificationData,
   Trade,
   Portfolio
-} from '@player-stock-market/shared';
+} from '../../../shared/src/types';
 
 interface SocketContextType {
   socket: Socket | null;

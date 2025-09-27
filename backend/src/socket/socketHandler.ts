@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io';
-import { SocketEvents, ChatMessage, NotificationData } from '@player-stock-market/shared';
+import { SocketEvents, ChatMessage, NotificationData } from '../../../shared/src/types';
 import { v4 as uuidv4 } from 'uuid';
 
 interface ConnectedUser {
@@ -45,15 +45,16 @@ export function initializeSocketHandlers(io: Server) {
       console.log(`✅ User ${username} (${userId}) joined room: general`);
 
       // Send welcome message
-      socket.emit('notification', {
+      const welcomeNotification = {
         id: uuidv4(),
         userId,
-        type: 'system',
+        type: 'system' as const,
         title: 'Welcome!',
         message: 'Connected to Player Stock Market',
         timestamp: Date.now(),
         isRead: false
-      } as NotificationData);
+      };
+      socket.emit('notification', welcomeNotification);
 
       // Broadcast user count update
       io.to('general').emit('user_count', connectedUsers.size);

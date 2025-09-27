@@ -1,4 +1,4 @@
-import { Player, User, Portfolio, Trade, LeaderboardEntry, LiveGame, PricePoint } from '@player-stock-market/shared';
+import { Player, User, Portfolio, Trade, LeaderboardEntry, LiveGame, PricePoint } from '../../../shared/src/types';
 import { v4 as uuidv4 } from 'uuid';
 
 // Global data stores

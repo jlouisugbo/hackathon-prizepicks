@@ -8,7 +8,7 @@ import {
   LeaderboardEntry,
   LiveGame,
   PaginatedResponse
-} from '@player-stock-market/shared';
+} from '../../../shared/src/types';
 
 const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:3001';
 const API_TIMEOUT = 10000; // 10 seconds

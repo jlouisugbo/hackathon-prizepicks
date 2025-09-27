@@ -1,6 +1,6 @@
 import express from 'express';
 import { getCurrentGame } from '../data/mockData';
-import { ApiResponse, LiveGame } from '@player-stock-market/shared';
+import { ApiResponse, LiveGame } from '../../../shared/src/types';
 
 const router = express.Router();
 

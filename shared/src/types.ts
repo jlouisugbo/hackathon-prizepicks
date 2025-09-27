@@ -272,7 +272,7 @@ export type TradeType = 'buy' | 'sell';
 export type Position = 'PG' | 'SG' | 'SF' | 'PF' | 'C';
 export type EventType = 'basket' | 'three_pointer' | 'assist' | 'rebound' | 'steal' | 'block' | 'dunk';
 export type BadgeRarity = 'common' | 'rare' | 'epic' | 'legendary';
-export type NotificationType = 'trade_executed' | 'price_alert' | 'flash_multiplier' | 'rank_change' | 'badge_earned';
+export type NotificationType = 'trade_executed' | 'price_alert' | 'flash_multiplier' | 'rank_change' | 'badge_earned' | 'system';
 
 // Constants
 export const POSITIONS: Position[] = ['PG', 'SG', 'SF', 'PF', 'C'];

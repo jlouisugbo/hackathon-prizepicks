@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { LiveGame, Player } from '@player-stock-market/shared';
+import { LiveGame, Player } from '../../../shared/src/types';
 import { apiService } from '../services/api';
 
 interface GameContextType {

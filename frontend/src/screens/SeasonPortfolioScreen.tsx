@@ -24,7 +24,7 @@ import { useSocket } from '../context/SocketContext';
 import { useGame } from '../context/GameContext';
 import { theme } from '../theme/theme';
 import { formatCurrency, formatPercent } from '../utils/formatters';
-import { Holding } from '@player-stock-market/shared';
+import { Holding } from '../../../../shared/src/types';
 
 export default function SeasonPortfolioScreen() {
   const { portfolio, loading, error, refreshPortfolio, updateHoldingPrice } = usePortfolio();

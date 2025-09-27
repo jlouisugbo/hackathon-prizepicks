@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Portfolio, Holding, Player } from '@player-stock-market/shared';
+import { Portfolio, Holding, Player } from '../../../shared/src/types';
 import { apiService } from '../services/api';
 
 interface PortfolioContextType {

@@ -1,6 +1,6 @@
 import express from 'express';
 import { getPlayers } from '../data/mockData';
-import { ApiResponse, Player } from '@player-stock-market/shared';
+import { ApiResponse, Player } from '../../../shared/src/types';
 
 const router = express.Router();
 

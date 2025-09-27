@@ -30,7 +30,7 @@ import { useSocket } from '../context/SocketContext';
 import { usePortfolio } from '../context/PortfolioContext';
 import { theme } from '../theme/theme';
 import { formatCurrency, formatGameTime, formatMultiplier } from '../utils/formatters';
-import { Player, FlashMultiplier } from '@player-stock-market/shared';
+import { Player, FlashMultiplier } from '../../../../shared/src/types';
 
 const { width } = Dimensions.get('window');
 

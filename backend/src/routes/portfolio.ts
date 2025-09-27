@@ -1,6 +1,6 @@
 import express from 'express';
 import { getPortfolios, getUsers, portfolios } from '../data/mockData';
-import { ApiResponse, Portfolio } from '@player-stock-market/shared';
+import { ApiResponse, Portfolio } from '../../../shared/src/types';
 
 const router = express.Router();
 

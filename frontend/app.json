@@ -4,34 +4,23 @@
     "slug": "player-stock-market",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#1E88E5"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.playerstockmarket.app"
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FFFFFF"
-      },
       "package": "com.playerstockmarket.app"
     },
     "web": {
-      "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
     "extra": {
-      "apiUrl": "http://localhost:3001",
-      "socketUrl": "http://localhost:3001"
+      "apiUrl": "http://localhost:3002",
+      "socketUrl": "http://localhost:3002"
     },
     "scheme": "player-stock-market"
   }
