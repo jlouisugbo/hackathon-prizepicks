@@ -4,21 +4,27 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.io = void 0;
+// Load environment variables first, before any other imports
+const dotenv_1 = __importDefault(require("dotenv"));
+const path_1 = __importDefault(require("path"));
+const envPath = path_1.default.resolve(__dirname, '../.env');
+dotenv_1.default.config({ path: envPath });
 const express_1 = __importDefault(require("express"));
 const http_1 = require("http");
 const socket_io_1 = require("socket.io");
 const cors_1 = __importDefault(require("cors"));
-const dotenv_1 = __importDefault(require("dotenv"));
 const socketHandler_1 = require("./socket/socketHandler");
 const mockData_1 = require("./data/mockData");
 const gameSimulation_1 = require("./socket/gameSimulation");
+const priceEngine_1 = __importDefault(require("./utils/priceEngine"));
+const supabase_1 = require("./config/supabase");
 // Import routes
 const players_1 = __importDefault(require("./routes/players"));
 const portfolio_1 = __importDefault(require("./routes/portfolio"));
 const trades_1 = __importDefault(require("./routes/trades"));
 const leaderboard_1 = __importDefault(require("./routes/leaderboard"));
 const game_1 = __importDefault(require("./routes/game"));
-dotenv_1.default.config();
+const auth_1 = __importDefault(require("./routes/auth"));
 const app = (0, express_1.default)();
 const server = (0, http_1.createServer)(app);
 const io = new socket_io_1.Server(server, {
@@ -37,6 +43,8 @@ app.use((0, cors_1.default)({
 }));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
+// Serve static files for demo
+app.use(express_1.default.static('public'));
 // Health check endpoint
 app.get('/health', (req, res) => {
     res.json({
@@ -46,6 +54,7 @@ app.get('/health', (req, res) => {
     });
 });
 // API Routes
+app.use('/api/auth', auth_1.default);
 app.use('/api/players', players_1.default);
 app.use('/api/portfolio', portfolio_1.default);
 app.use('/api/trades', trades_1.default);
@@ -71,8 +80,15 @@ app.use('*', (req, res) => {
 // Initialize mock data and socket handlers
 (0, mockData_1.initializeMockData)();
 (0, socketHandler_1.initializeSocketHandlers)(io);
-// Start game simulation
+// Initialize Supabase (optional for demo)
+(0, supabase_1.initializeSupabaseTables)();
+// Start game simulation (handles all price updates globally)
 (0, gameSimulation_1.startGameSimulation)(io);
+// IMPORTANT: PriceEngine auto-updates are DISABLED to prevent double refreshing
+// Game simulation handles ALL price updates to ensure single global update loop
+// This ensures price updates are consistent across all connected users
+const priceEngine = priceEngine_1.default.getInstance();
+const players = (0, mockData_1.getPlayers)();
 server.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);

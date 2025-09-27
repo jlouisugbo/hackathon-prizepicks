@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Portfolio, Holding, Player } from '../../../shared/src/types';
 import { apiService } from '../services/api';
+import { useAuth } from './AuthContext';
 
 interface PortfolioContextType {
   portfolio: Portfolio | null;
@@ -12,24 +13,29 @@ interface PortfolioContextType {
 
 const PortfolioContext = createContext<PortfolioContextType | undefined>(undefined);
 
-// Demo user ID - in a real app this would come from authentication
-const DEMO_USER_ID = 'user-1';
-
 export function PortfolioProvider({ children }: { children: React.ReactNode }) {
+  const { user, isAuthenticated } = useAuth();
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchPortfolio();
-  }, []);
+    if (isAuthenticated && user) {
+      fetchPortfolio();
+    } else {
+      setLoading(false);
+      setPortfolio(null);
+    }
+  }, [isAuthenticated, user]);
 
   const fetchPortfolio = async () => {
+    if (!user) return;
+
     try {
       setLoading(true);
       setError(null);
 
-      const response = await apiService.getPortfolio(DEMO_USER_ID);
+      const response = await apiService.getPortfolio(user.id);
 
       if (response.success && response.data) {
         setPortfolio(response.data);

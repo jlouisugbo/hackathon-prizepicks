@@ -1,0 +1,445 @@
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  RefreshControl,
+  Alert,
+  Dimensions,
+} from 'react-native';
+import {
+  Text,
+  Button,
+  Surface,
+  ActivityIndicator,
+  Searchbar,
+} from 'react-native-paper';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+
+// Components
+import PlayerCard from '../components/PlayerCard';
+import TradeModal from '../components/TradeModal';
+import FlashMultiplier from '../components/FlashMultiplier';
+
+// Contexts and utilities
+import { usePortfolio } from '../context/PortfolioContext';
+import { useSocket } from '../context/SocketContext';
+import { useGame } from '../context/GameContext';
+import { theme } from '../theme/theme';
+import { formatCurrency, formatPercent } from '../utils/formatters';
+import { Player, TradeRequest } from '../../../../shared/src/types';
+
+const { width } = Dimensions.get('window');
+
+export default function MarketDashboard() {
+  const { portfolio, loading, error, refreshPortfolio } = usePortfolio();
+  const { priceUpdates, isConnected, joinRoom, flashMultipliers, gameEvents } = useSocket();
+  const { players, executeTrade } = useGame();
+
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [tradeModalVisible, setTradeModalVisible] = useState(false);
+  const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
+  const [flashMultiplier, setFlashMultiplier] = useState<{
+    visible: boolean;
+    multiplier: number;
+    playerName: string;
+    eventType: string;
+  }>({ visible: false, multiplier: 0, playerName: '', eventType: '' });
+
+  useEffect(() => {
+    // Auto-join socket room with demo user
+    if (isConnected) {
+      joinRoom('user-1', 'DemoUser');
+    }
+  }, [isConnected]);
+
+  // Handle flash multipliers
+  useEffect(() => {
+    if (flashMultipliers.size > 0) {
+      const [playerId, multiplierData] = Array.from(flashMultipliers.entries())[0];
+      const player = players.find(p => p.id === playerId);
+      if (player) {
+        setFlashMultiplier({
+          visible: true,
+          multiplier: multiplierData.multiplier,
+          playerName: player.name,
+          eventType: multiplierData.eventType || 'big_play',
+        });
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      }
+    }
+  }, [flashMultipliers, players]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refreshPortfolio();
+    setRefreshing(false);
+  };
+
+  const handlePlayerPress = (player: Player) => {
+    setSelectedPlayer(player);
+    setTradeType('buy');
+    setTradeModalVisible(true);
+  };
+
+  const handleBuyPress = (player: Player) => {
+    setSelectedPlayer(player);
+    setTradeType('buy');
+    setTradeModalVisible(true);
+  };
+
+  const handleSellPress = (player: Player) => {
+    setSelectedPlayer(player);
+    setTradeType('sell');
+    setTradeModalVisible(true);
+  };
+
+  const handleConfirmTrade = async (trade: TradeRequest) => {
+    try {
+      await executeTrade(trade);
+      setTradeModalVisible(false);
+      await refreshPortfolio();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      Alert.alert('Trade Failed', error.message || 'An error occurred');
+    }
+  };
+
+  const filteredPlayers = players.filter(player =>
+    player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    player.team.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const topGainers = players
+    .filter(p => p.priceChangePercent24h > 0)
+    .sort((a, b) => b.priceChangePercent24h - a.priceChangePercent24h)
+    .slice(0, 3);
+
+  const topLosers = players
+    .filter(p => p.priceChangePercent24h < 0)
+    .sort((a, b) => a.priceChangePercent24h - b.priceChangePercent24h)
+    .slice(0, 3);
+
+  if (loading && !portfolio) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={styles.loadingText}>Loading market data...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.centerContainer}>
+        <Ionicons name="alert-circle" size={48} color={theme.colors.error} />
+        <Text style={styles.errorText}>Failed to load market data</Text>
+        <Button mode="contained" onPress={refreshPortfolio} style={styles.retryButton}>
+          Retry
+        </Button>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <LinearGradient
+        colors={[theme.colors.background, theme.colors.surface]}
+        style={styles.gradient}
+      >
+        <ScrollView
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Portfolio Header */}
+          <LinearGradient
+            colors={[theme.colors.primary + '20', theme.colors.surface]}
+            style={styles.portfolioHeader}
+          >
+            <View style={styles.portfolioContent}>
+              <View style={styles.portfolioLeft}>
+                <Text style={styles.welcomeText}>Portfolio Value</Text>
+                <Text style={styles.portfolioValue}>
+                  {formatCurrency(portfolio?.totalValue || 0)}
+                </Text>
+                <View style={styles.dailyChangeRow}>
+                  <Ionicons
+                    name={portfolio?.todaysPL >= 0 ? 'trending-up' : 'trending-down'}
+                    size={18}
+                    color={portfolio?.todaysPL >= 0 ? theme.colors.bullish : theme.colors.bearish}
+                  />
+                  <Text style={[
+                    styles.dailyChange,
+                    { color: portfolio?.todaysPL >= 0 ? theme.colors.bullish : theme.colors.bearish }
+                  ]}>
+                    {portfolio?.todaysPL >= 0 ? '+' : ''}{formatCurrency(portfolio?.todaysPL || 0)} today
+                  </Text>
+                </View>
+              </View>
+              <Surface style={styles.connectionStatus}>
+                <View style={[
+                  styles.connectionDot,
+                  { backgroundColor: isConnected ? theme.colors.bullish : theme.colors.error }
+                ]} />
+                <Text style={styles.connectionText}>
+                  {isConnected ? 'LIVE' : 'OFFLINE'}
+                </Text>
+              </Surface>
+            </View>
+          </LinearGradient>
+
+          {/* Search Bar */}
+          <View style={styles.searchSection}>
+            <Searchbar
+              placeholder="Search players or teams..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              style={styles.searchBar}
+              inputStyle={styles.searchInput}
+              iconColor={theme.colors.primary}
+            />
+          </View>
+
+          {/* Top Movers */}
+          {!searchQuery && (
+            <View style={styles.topMoversSection}>
+              <Text style={styles.sectionTitle}>🔥 Top Movers</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.topMoversContainer}>
+                  <View style={styles.moverColumn}>
+                    <Text style={styles.moverTitle}>Top Gainers</Text>
+                    {topGainers.map(player => (
+                      <Surface key={player.id} style={styles.moverCard}>
+                        <View style={styles.moverContent}>
+                          <Text style={styles.moverName} numberOfLines={1}>{player.name}</Text>
+                          <Text style={[styles.moverChange, { color: theme.colors.bullish }]}>
+                            +{formatPercent(player.priceChangePercent24h)}
+                          </Text>
+                        </View>
+                      </Surface>
+                    ))}
+                  </View>
+                  <View style={styles.moverColumn}>
+                    <Text style={styles.moverTitle}>Top Losers</Text>
+                    {topLosers.map(player => (
+                      <Surface key={player.id} style={styles.moverCard}>
+                        <View style={styles.moverContent}>
+                          <Text style={styles.moverName} numberOfLines={1}>{player.name}</Text>
+                          <Text style={[styles.moverChange, { color: theme.colors.bearish }]}>
+                            {formatPercent(player.priceChangePercent24h)}
+                          </Text>
+                        </View>
+                      </Surface>
+                    ))}
+                  </View>
+                </View>
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Player Grid */}
+          <View style={styles.playersSection}>
+            <Text style={styles.sectionTitle}>
+              {searchQuery ? `Search Results (${filteredPlayers.length})` : '🏀 All Players'}
+            </Text>
+            <View style={styles.playersGrid}>
+              {filteredPlayers.map((player) => (
+                <PlayerCard
+                  key={player.id}
+                  player={player}
+                  onPress={() => handlePlayerPress(player)}
+                  onBuy={() => handleBuyPress(player)}
+                  onSell={() => handleSellPress(player)}
+                  flashMultiplier={flashMultipliers.get(player.id)?.multiplier}
+                  isLive={player.isPlaying}
+                />
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* Trade Modal */}
+        <TradeModal
+          visible={tradeModalVisible}
+          player={selectedPlayer}
+          tradeType={tradeType}
+          availableBalance={portfolio?.availableBalance || 0}
+          currentHolding={portfolio?.seasonHoldings.find(h => h.playerId === selectedPlayer?.id)?.shares || 0}
+          onClose={() => setTradeModalVisible(false)}
+          onConfirmTrade={handleConfirmTrade}
+        />
+
+        {/* Flash Multiplier */}
+        <FlashMultiplier
+          visible={flashMultiplier.visible}
+          multiplier={flashMultiplier.multiplier}
+          playerName={flashMultiplier.playerName}
+          eventType={flashMultiplier.eventType}
+          onComplete={() => setFlashMultiplier(prev => ({ ...prev, visible: false }))}
+        />
+      </LinearGradient>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  gradient: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 16,
+    color: theme.colors.onBackground,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  errorText: {
+    marginTop: 16,
+    color: theme.colors.error,
+    textAlign: 'center',
+    fontSize: 16,
+  },
+  retryButton: {
+    marginTop: 16,
+  },
+  portfolioHeader: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  portfolioContent: {
+    padding: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  portfolioLeft: {
+    flex: 1,
+  },
+  welcomeText: {
+    fontSize: 16,
+    color: theme.colors.neutral,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  portfolioValue: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: theme.colors.onSurface,
+    marginBottom: 8,
+  },
+  dailyChangeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dailyChange: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  connectionStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: theme.colors.surfaceVariant,
+    gap: 6,
+  },
+  connectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  connectionText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.onSurface,
+  },
+  searchSection: {
+    marginHorizontal: 16,
+    marginTop: 20,
+  },
+  searchBar: {
+    backgroundColor: theme.colors.surfaceVariant,
+    elevation: 0,
+    borderRadius: 12,
+  },
+  searchInput: {
+    color: theme.colors.onSurface,
+    fontSize: 16,
+  },
+  topMoversSection: {
+    marginTop: 24,
+  },
+  topMoversContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    gap: 16,
+  },
+  moverColumn: {
+    width: width * 0.4,
+  },
+  moverTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.onSurface,
+    marginBottom: 12,
+  },
+  moverCard: {
+    backgroundColor: theme.colors.surfaceVariant,
+    borderRadius: 8,
+    marginBottom: 8,
+    elevation: 1,
+  },
+  moverContent: {
+    padding: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  moverName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.onSurface,
+    flex: 1,
+  },
+  moverChange: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  playersSection: {
+    marginTop: 24,
+    paddingHorizontal: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: theme.colors.onSurface,
+    marginBottom: 16,
+  },
+  playersGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+});

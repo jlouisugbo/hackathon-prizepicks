@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { LiveGame, Player } from '../../../shared/src/types';
+import { LiveGame, Player, TradeRequest, Trade } from '../../../shared/src/types';
 import { apiService } from '../services/api';
 
 interface GameContextType {
@@ -10,6 +10,7 @@ interface GameContextType {
   refreshGame: () => Promise<void>;
   refreshPlayers: () => Promise<void>;
   updatePlayerPrice: (playerId: string, newPrice: number, change: number, changePercent: number) => void;
+  executeTrade: (tradeRequest: TradeRequest) => Promise<Trade>;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -102,6 +103,23 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  const executeTrade = async (tradeRequest: TradeRequest): Promise<Trade> => {
+    try {
+      setError(null);
+      const response = await apiService.executeMarketOrder(tradeRequest);
+
+      if (response.success && response.data) {
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Trade execution failed');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Trade execution failed';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    }
+  };
+
   const value: GameContextType = {
     currentGame,
     players,
@@ -110,6 +128,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     refreshGame,
     refreshPlayers,
     updatePlayerPrice,
+    executeTrade,
   };
 
   return (

@@ -153,7 +153,7 @@ export default function LeaderboardScreen() {
                 <View style={styles.badges}>
                   {item.badges.slice(0, 2).map((badge, badgeIndex) => (
                     <Chip
-                      key={badgeIndex}
+                      key={`${item.userId}-badge-${badgeIndex}`}
                       style={styles.badge}
                       textStyle={styles.badgeText}
                     >
@@ -267,7 +267,7 @@ export default function LeaderboardScreen() {
       <FlatList
         data={leaderboard}
         renderItem={renderLeaderboardEntry}
-        keyExtractor={(item) => `${item.userId}-${leaderboardType}`}
+        keyExtractor={(item, index) => `${leaderboardType}-${item.userId}-${index}`}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -318,19 +318,27 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 16,
     paddingBottom: 20,
+    alignItems: 'center',
   },
   entryCard: {
-    marginBottom: 8,
+    marginBottom: 12,
+    backgroundColor: theme.colors.cardBg,
+    borderColor: theme.colors.cardBorder,
+    width: '100%',
+    alignSelf: 'center',
   },
   entryContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+    justifyContent: 'space-between',
   },
   rankSection: {
     alignItems: 'center',
-    marginRight: 16,
-    minWidth: 50,
+    marginRight: 12,
+    width: 50,
+    flexShrink: 0,
   },
   rankBadge: {
     width: 32,
@@ -356,18 +364,20 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
+    marginHorizontal: 8,
   },
   avatar: {
-    marginRight: 12,
+    marginRight: 10,
+    backgroundColor: theme.colors.primary,
   },
   userInfo: {
     flex: 1,
   },
   username: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 4,
+    color: theme.colors.onSurface,
   },
   badges: {
     flexDirection: 'row',
@@ -383,21 +393,26 @@ const styles = StyleSheet.create({
   },
   statsSection: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    minWidth: 120,
+    flexShrink: 0,
   },
   statColumn: {
     alignItems: 'flex-end',
-    marginLeft: 12,
-    minWidth: 80,
+    marginLeft: 8,
+    minWidth: 70,
   },
   statLabel: {
     fontSize: 11,
-    color: theme.colors.onSurface + '60',
+    color: theme.colors.neutral,
     marginBottom: 2,
+    textAlign: 'right',
   },
   statValue: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
+    color: theme.colors.onSurface,
   },
   statPercent: {
     fontSize: 12,
@@ -405,6 +420,8 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     marginTop: 40,
+    backgroundColor: theme.colors.cardBg,
+    borderColor: theme.colors.cardBorder,
   },
   emptyContent: {
     alignItems: 'center',

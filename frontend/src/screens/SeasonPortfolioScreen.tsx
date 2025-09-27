@@ -293,6 +293,9 @@ const styles = StyleSheet.create({
     margin: 16,
     padding: 20,
     borderRadius: 12,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 400,
   },
   summaryHeader: {
     flexDirection: 'row',
@@ -338,6 +341,7 @@ const styles = StyleSheet.create({
   holdingsSection: {
     flex: 1,
     paddingHorizontal: 16,
+    alignItems: 'center',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -353,9 +357,14 @@ const styles = StyleSheet.create({
   },
   holdingsList: {
     paddingBottom: 100,
+    alignItems: 'center',
+    width: '100%',
   },
   holdingCard: {
     marginBottom: 12,
+    width: '100%',
+    maxWidth: 400,
+    alignSelf: 'center',
   },
   holdingHeader: {
     flexDirection: 'row',
@@ -402,6 +411,9 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     marginTop: 40,
+    width: '100%',
+    maxWidth: 400,
+    alignSelf: 'center',
   },
   emptyContent: {
     alignItems: 'center',

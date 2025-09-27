@@ -18,7 +18,7 @@ interface SocketContextType {
   socket: Socket | null;
   isConnected: boolean;
   priceUpdates: Map<string, { price: number; change: number; changePercent: number }>;
-  flashMultipliers: FlashMultiplier[];
+  flashMultipliers: Map<string, FlashMultiplier>;
   gameEvents: GameEvent[];
   leaderboard: LeaderboardEntry[];
   chatMessages: ChatMessage[];
@@ -48,7 +48,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [priceUpdates, setPriceUpdates] = useState(new Map());
-  const [flashMultipliers, setFlashMultipliers] = useState<FlashMultiplier[]>([]);
+  const [flashMultipliers, setFlashMultipliers] = useState<Map<string, FlashMultiplier>>(new Map());
   const [gameEvents, setGameEvents] = useState<GameEvent[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -121,18 +121,27 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     newSocket.on('flash_multiplier', (data: FlashMultiplier) => {
       setFlashMultipliers(prev => {
-        const filtered = prev.filter(fm => fm.playerId !== data.playerId);
-        return [data, ...filtered].slice(0, 10); // Keep max 10 active multipliers
+        const updated = new Map(prev);
+        updated.set(data.playerId, data);
+        return updated;
       });
 
       // Auto-remove after duration
       setTimeout(() => {
-        setFlashMultipliers(prev => prev.filter(fm => fm.playerId !== data.playerId));
+        setFlashMultipliers(prev => {
+          const updated = new Map(prev);
+          updated.delete(data.playerId);
+          return updated;
+        });
       }, data.duration);
     });
 
     newSocket.on('flash_multiplier_expired', (data: { playerId: string }) => {
-      setFlashMultipliers(prev => prev.filter(fm => fm.playerId !== data.playerId));
+      setFlashMultipliers(prev => {
+        const updated = new Map(prev);
+        updated.delete(data.playerId);
+        return updated;
+      });
     });
 
     newSocket.on('game_event', (event: GameEvent) => {

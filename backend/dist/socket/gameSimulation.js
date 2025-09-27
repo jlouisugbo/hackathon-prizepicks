@@ -87,7 +87,7 @@ function startGameSimulation(io) {
     // Start price updates
     startPriceUpdates(io);
     // Start flash multiplier system
-    startFlashMultiplierSystem(io);
+    //startFlashMultiplierSystem(io);
     // Start game events
     startGameEvents(io);
     // Start market data broadcasting
@@ -133,50 +133,56 @@ function startPriceUpdates(io) {
         });
     }, PRICE_UPDATE_INTERVAL);
 }
-function startFlashMultiplierSystem(io) {
-    flashMultiplierInterval = setInterval(() => {
-        const currentGame = (0, mockData_1.getCurrentGame)();
-        if (!currentGame || !currentGame.isActive)
-            return;
-        // Random chance for flash multiplier
-        if (Math.random() < FLASH_MULTIPLIER_CHANCE) {
-            triggerFlashMultiplier(io);
-        }
-        // Clean up expired flash multipliers
-        cleanupExpiredMultipliers(io);
-    }, PRICE_UPDATE_INTERVAL);
+/*
+function startFlashMultiplierSystem(io: Server) {
+  flashMultiplierInterval = setInterval(() => {
+    const currentGame = getCurrentGame();
+    if (!currentGame || !currentGame.isActive) return;
+
+    // Random chance for flash multiplier
+    if (Math.random() < FLASH_MULTIPLIER_CHANCE) {
+      triggerFlashMultiplier(io);
+    }
+
+    // Clean up expired flash multipliers
+    cleanupExpiredMultipliers(io);
+
+  }, PRICE_UPDATE_INTERVAL);
 }
-function triggerFlashMultiplier(io) {
+*/
+function triggerFlashMultiplier(io, flashData) {
     const playersList = (0, mockData_1.getPlayers)();
     const playingPlayers = playersList.filter(p => p.isPlaying);
     if (playingPlayers.length === 0)
         return;
     // Select random playing player
-    const randomPlayer = playingPlayers[Math.floor(Math.random() * playingPlayers.length)];
+    //const randomPlayer = playingPlayers[Math.floor(Math.random() * playingPlayers.length)];
+    /*
     // Generate multiplier (1.2x to 4.0x, with higher multipliers being rarer)
-    let multiplier;
+    let multiplier: number;
     const rand = Math.random();
-    if (rand < 0.5)
-        multiplier = 1.2 + Math.random() * 0.8; // 1.2x - 2.0x (50% chance)
-    else if (rand < 0.8)
-        multiplier = 2.0 + Math.random() * 1.0; // 2.0x - 3.0x (30% chance)
-    else
-        multiplier = 3.0 + Math.random() * 1.0; // 3.0x - 4.0x (20% chance)
+    if (rand < 0.5) multiplier = 1.2 + Math.random() * 0.8; // 1.2x - 2.0x (50% chance)
+    else if (rand < 0.8) multiplier = 2.0 + Math.random() * 1.0; // 2.0x - 3.0x (30% chance)
+    else multiplier = 3.0 + Math.random() * 1.0; // 3.0x - 4.0x (20% chance)
+  
     multiplier = Math.round(multiplier * 10) / 10; // Round to 1 decimal
-    const flashData = {
-        playerId: randomPlayer.id,
-        playerName: randomPlayer.name,
-        multiplier,
-        duration: 30000, // 30 seconds
-        startTime: Date.now(),
-        eventDescription: generateFlashEvent(randomPlayer.name, multiplier),
-        isActive: true
+    */
+    /*
+    const flashData: FlashMultiplier = {
+      playerId: randomPlayer.id,
+      playerName: randomPlayer.name,
+      multiplier,
+      duration: 30000, // 30 seconds
+      startTime: Date.now(),
+      eventDescription: generateFlashEvent(randomPlayer.name, multiplier),
+      isActive: true
     };
+  */
     // Store active multiplier
-    activeFlashMultipliers.set(randomPlayer.id, flashData);
+    activeFlashMultipliers.set(flashData.playerId, flashData);
     // Broadcast flash multiplier
     (0, socketHandler_1.broadcastFlashMultiplier)(io, flashData);
-    console.log(`⚡ Flash multiplier triggered: ${randomPlayer.name} ${multiplier}x`);
+    console.log(`⚡ Flash multiplier triggered: ${flashData.playerName} ${flashData.multiplier}x`);
 }
 function generateFlashEvent(playerName, multiplier) {
     const events = [
@@ -270,7 +276,7 @@ function triggerGameEvent(io, eventTemplate) {
             isActive: true
         };
         activeFlashMultipliers.set(player.id, flashData);
-        (0, socketHandler_1.broadcastFlashMultiplier)(io, flashData);
+        triggerFlashMultiplier(io, flashData);
     }
     console.log(`🏀 Game event: ${gameEvent.description}`);
 }

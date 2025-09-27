@@ -19,8 +19,8 @@
       "bundler": "metro"
     },
     "extra": {
-      "apiUrl": "http://localhost:3002",
-      "socketUrl": "http://localhost:3002"
+      "apiUrl": "https://hackathon-prizepicks-production.up.railway.app",
+      "socketUrl": "https://hackathon-prizepicks-production.up.railway.app"
     },
     "scheme": "player-stock-market"
   }

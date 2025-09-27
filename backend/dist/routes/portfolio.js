@@ -5,13 +5,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const mockData_1 = require("../data/mockData");
+const databaseService_1 = require("../services/databaseService");
 const router = express_1.default.Router();
 // GET /api/portfolio/:userId - Get user portfolio
-router.get('/:userId', (req, res) => {
+router.get('/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
-        const portfolioList = (0, mockData_1.getPortfolios)();
-        const portfolio = portfolioList.find(p => p.userId === userId);
+        // Try to get from Supabase first
+        let portfolio = await databaseService_1.databaseService.getPortfolioByUserId(userId);
+        // Fallback to mock data if Supabase is not configured
+        if (!portfolio) {
+            const portfolioList = (0, mockData_1.getPortfolios)();
+            portfolio = portfolioList.find(p => p.userId === userId) || null;
+        }
         if (!portfolio) {
             return res.status(404).json({
                 success: false,

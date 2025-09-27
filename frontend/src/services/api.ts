@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ApiResponse,
   Player,
@@ -29,15 +30,23 @@ class ApiService {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
+    // Get auth token if available
+    const token = await AsyncStorage.getItem('auth_token');
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    // Add authorization header if token exists
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     try {
       const response = await fetch(url, {
         ...options,
         signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          'user-id': 'user-1', // Demo user ID
-          ...options.headers,
-        },
+        headers,
       });
 
       clearTimeout(timeoutId);
@@ -179,6 +188,36 @@ class ApiService {
   ): Promise<ApiResponse> {
     const query = timeframe ? `?timeframe=${timeframe}` : '';
     return this.makeRequest(`/api/trades/volume/${playerId}${query}`);
+  }
+
+  // Authentication endpoints
+  async login(email: string, password: string): Promise<ApiResponse<{ user: any; token: string }>> {
+    return this.makeRequest('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  }
+
+  async register(email: string, password: string, username: string): Promise<ApiResponse<{ user: any; token: string }>> {
+    return this.makeRequest('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, username }),
+    });
+  }
+
+  async verifyAuthToken(token: string): Promise<ApiResponse> {
+    return this.makeRequest('/api/auth/me', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+  }
+
+  async demoLogin(email: string, username?: string): Promise<ApiResponse<{ user: any; token: string }>> {
+    return this.makeRequest('/api/auth/demo-login', {
+      method: 'POST',
+      body: JSON.stringify({ email, username }),
+    });
   }
 
   // Leaderboard endpoints

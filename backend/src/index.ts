@@ -89,27 +89,14 @@ initializeSocketHandlers(io);
 // Initialize Supabase (optional for demo)
 initializeSupabaseTables();
 
-// Start game simulation
+// Start game simulation (handles all price updates globally)
 startGameSimulation(io);
 
-// Initialize and start price engine
+// IMPORTANT: PriceEngine auto-updates are DISABLED to prevent double refreshing
+// Game simulation handles ALL price updates to ensure single global update loop
+// This ensures price updates are consistent across all connected users
 const priceEngine = PriceEngine.getInstance();
 const players = getPlayers();
-
-// Set up price update callback for WebSocket broadcasts
-priceEngine.onPriceUpdate((playerId, newPrice, change) => {
-  // Broadcast price update to all connected clients
-  io.emit('price_update', {
-    playerId,
-    price: newPrice,
-    change,
-    changePercent: (change / (newPrice - change)) * 100,
-    timestamp: Date.now()
-  });
-});
-
-// Start the price update engine (every 10 seconds)
-priceEngine.startPriceUpdates(players, 10000);
 
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

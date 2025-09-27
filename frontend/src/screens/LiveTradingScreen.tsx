@@ -5,48 +5,44 @@ import {
   StyleSheet,
   Alert,
   Dimensions,
+  FlatList,
+  RefreshControl,
 } from 'react-native';
 import {
-  Card,
-  Title,
   Text,
-  Button,
-  Chip,
-  Surface,
   ActivityIndicator,
 } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
 
+// Components
+import PlayerCard from '../components/PlayerCard';
+import TradeModal from '../components/TradeModal';
+
+// Contexts
 import { useGame } from '../context/GameContext';
 import { useSocket } from '../context/SocketContext';
 import { usePortfolio } from '../context/PortfolioContext';
 import { theme } from '../theme/theme';
-import { formatCurrency, formatGameTime, formatMultiplier } from '../utils/formatters';
-import { Player, FlashMultiplier } from '../../../../shared/src/types';
+import { formatCurrency, formatPercent } from '../utils/formatters';
+import { Player, TradeRequest, FlashMultiplier } from '../../../../shared/src/types';
 
 const { width } = Dimensions.get('window');
 
 export default function LiveTradingScreen() {
-  const { currentGame, players, loading } = useGame();
+  const { currentGame, players, loading, executeTrade } = useGame();
   const {
     flashMultipliers,
     gameEvents,
-    marketData,
     isConnected,
     joinLiveTrading
   } = useSocket();
-  const { portfolio } = usePortfolio();
+  const { portfolio, refreshPortfolio } = usePortfolio();
 
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
-  const flashScale = useSharedValue(1);
+  const [tradeModalVisible, setTradeModalVisible] = useState(false);
+  const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (isConnected) {
@@ -54,274 +50,198 @@ export default function LiveTradingScreen() {
     }
   }, [isConnected]);
 
-  // Animate flash multipliers
+  // Handle flash multipliers
   useEffect(() => {
-    if (flashMultipliers.length > 0) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      flashScale.value = withSequence(
-        withSpring(1.2),
-        withSpring(1),
-        withTiming(1, { duration: 1000 })
-      );
+    if (flashMultipliers.size > 0) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     }
   }, [flashMultipliers]);
 
-  const animatedFlashStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: flashScale.value }],
-  }));
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refreshPortfolio();
+    setRefreshing(false);
+  };
+
+  const handleQuickBuy = (player: Player) => {
+    setSelectedPlayer(player);
+    setTradeType('buy');
+    setTradeModalVisible(true);
+  };
+
+  const handleQuickSell = (player: Player) => {
+    setSelectedPlayer(player);
+    setTradeType('sell');
+    setTradeModalVisible(true);
+  };
+
+  const handleConfirmTrade = async (trade: TradeRequest) => {
+    try {
+      await executeTrade({ ...trade, accountType: 'live' });
+      await refreshPortfolio();
+      Alert.alert('Trade Executed!', `Successfully ${trade.type === 'buy' ? 'bought' : 'sold'} ${trade.shares} share(s)`);
+    } catch (error) {
+      Alert.alert('Trade Failed', error instanceof Error ? error.message : 'Failed to execute trade');
+    }
+  };
 
   const renderGameHeader = () => {
     if (!currentGame) {
       return (
-        <Card style={styles.gameCard} mode="outlined">
-          <Card.Content style={styles.noGameContent}>
-            <Ionicons name="basketball-outline" size={48} color={theme.colors.outline} />
-            <Title style={styles.noGameTitle}>No Live Game</Title>
-            <Text style={styles.noGameText}>
-              Live trading will be available during games
-            </Text>
-          </Card.Content>
-        </Card>
+        <View style={styles.noGameContainer}>
+          <Ionicons name="basketball-outline" size={64} color={theme.colors.neutral} />
+          <Text style={styles.noGameTitle}>No Live Game</Text>
+          <Text style={styles.noGameSubtitle}>
+            Live trading will be available during games
+          </Text>
+        </View>
       );
     }
 
     return (
-      <Card style={styles.gameCard} mode="elevated">
-        <Card.Content>
-          <View style={styles.gameHeader}>
-            <View style={styles.liveIndicator}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveText}>LIVE</Text>
-            </View>
-            <Text style={styles.gameTime}>
-              {formatGameTime(currentGame.quarter, currentGame.timeRemaining)}
-            </Text>
+      <View style={styles.gameHeader}>
+        {/* Live indicator */}
+        <View style={styles.liveIndicatorContainer}>
+          <View style={styles.liveIndicator}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>LIVE</Text>
+          </View>
+          <Text style={styles.gameTime}>
+            Q{currentGame.quarter} • {currentGame.timeRemaining}
+          </Text>
+        </View>
+
+        {/* Score */}
+        <View style={styles.scoreContainer}>
+          <View style={styles.teamContainer}>
+            <Text style={styles.teamName}>{currentGame.awayTeam}</Text>
+            <Text style={styles.teamScore}>{currentGame.awayScore}</Text>
           </View>
 
-          <View style={styles.scoreBoard}>
-            <View style={styles.teamScore}>
-              <Text style={styles.teamName}>{currentGame.awayTeam}</Text>
-              <Text style={styles.score}>{currentGame.awayScore}</Text>
-            </View>
+          <View style={styles.scoreDivider}>
             <Text style={styles.scoreSeparator}>-</Text>
-            <View style={styles.teamScore}>
-              <Text style={styles.teamName}>{currentGame.homeTeam}</Text>
-              <Text style={styles.score}>{currentGame.homeScore}</Text>
-            </View>
           </View>
 
-          {portfolio && (
-            <View style={styles.tradingInfo}>
-              <Text style={styles.tradesRemainingLabel}>Live Trades Remaining</Text>
-              <Chip
-                mode="outlined"
-                style={[
-                  styles.tradesChip,
-                  {
-                    backgroundColor: portfolio.tradesRemaining > 0
-                      ? theme.colors.bullish + '20'
-                      : theme.colors.bearish + '20'
-                  }
-                ]}
-                textStyle={{
-                  color: portfolio.tradesRemaining > 0
-                    ? theme.colors.bullish
-                    : theme.colors.bearish,
-                  fontWeight: 'bold'
-                }}
-              >
-                {portfolio.tradesRemaining}
-              </Chip>
+          <View style={styles.teamContainer}>
+            <Text style={styles.teamName}>{currentGame.homeTeam}</Text>
+            <Text style={styles.teamScore}>{currentGame.homeScore}</Text>
+          </View>
+        </View>
+
+        {/* Trading info */}
+        {portfolio && (
+          <View style={styles.tradingStats}>
+            <View style={styles.statBox}>
+              <Text style={styles.statValue}>{portfolio.tradesRemaining}</Text>
+              <Text style={styles.statLabel}>Trades Left</Text>
             </View>
-          )}
-        </Card.Content>
-      </Card>
-    );
-  };
-
-  const renderFlashMultipliers = () => {
-    if (flashMultipliers.length === 0) return null;
-
-    return (
-      <Animated.View style={[styles.flashSection, animatedFlashStyle]}>
-        <Title style={styles.flashTitle}>🔥 Flash Multipliers Active!</Title>
-        {flashMultipliers.map((flash: FlashMultiplier) => (
-          <Card
-            key={flash.playerId}
-            style={[styles.flashCard, { backgroundColor: theme.colors.multiplierBg }]}
-            mode="outlined"
-          >
-            <Card.Content style={styles.flashContent}>
-              <View style={styles.flashInfo}>
-                <Text style={styles.flashPlayerName}>{flash.playerName}</Text>
-                <Text style={styles.flashDescription}>{flash.eventDescription}</Text>
-              </View>
-              <Chip
-                style={[styles.multiplierChip, { backgroundColor: theme.colors.multiplierGlow }]}
-                textStyle={styles.multiplierText}
-              >
-                {formatMultiplier(flash.multiplier)}
-              </Chip>
-            </Card.Content>
-          </Card>
-        ))}
-      </Animated.View>
-    );
-  };
-
-  const renderActivePlayers = () => {
-    if (!currentGame) return null;
-
-    const activePlayers = players.filter(p =>
-      currentGame.activePlayers.includes(p.id)
-    );
-
-    if (activePlayers.length === 0) return null;
-
-    return (
-      <View style={styles.playersSection}>
-        <Title style={styles.sectionTitle}>Active Players</Title>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.playersScroll}
-        >
-          {activePlayers.map((player: Player) => {
-            const hasFlash = flashMultipliers.some(f => f.playerId === player.id);
-            const isGain = player.priceChangePercent24h >= 0;
-
-            return (
-              <Card
-                key={player.id}
-                style={[
-                  styles.playerCard,
-                  hasFlash && { borderColor: theme.colors.multiplierGlow, borderWidth: 2 },
-                  selectedPlayer?.id === player.id && styles.selectedPlayer
-                ]}
-                mode="outlined"
-                onPress={() => setSelectedPlayer(player)}
-              >
-                <Card.Content style={styles.playerContent}>
-                  {hasFlash && (
-                    <View style={styles.flashBadge}>
-                      <Ionicons name="flash" size={12} color={theme.colors.multiplierGlow} />
-                    </View>
-                  )}
-
-                  <Text style={styles.playerName}>{player.name}</Text>
-                  <Text style={styles.playerTeam}>{player.team}</Text>
-
-                  <View style={styles.playerPriceInfo}>
-                    <Text style={styles.playerPrice}>
-                      {formatCurrency(player.currentPrice)}
-                    </Text>
-                    <Text style={[
-                      styles.playerChange,
-                      { color: isGain ? theme.colors.bullish : theme.colors.bearish }
-                    ]}>
-                      {isGain ? '+' : ''}{player.priceChangePercent24h.toFixed(1)}%
-                    </Text>
-                  </View>
-                </Card.Content>
-              </Card>
-            );
-          })}
-        </ScrollView>
+            <View style={styles.statBox}>
+              <Text style={styles.statValue}>{formatCurrency(portfolio.availableBalance)}</Text>
+              <Text style={styles.statLabel}>Available</Text>
+            </View>
+          </View>
+        )}
       </View>
     );
   };
 
-  const renderTradeActions = () => {
-    if (!selectedPlayer || !portfolio) return null;
-
-    const canTrade = portfolio.tradesRemaining > 0;
-    const hasBalance = portfolio.availableBalance >= selectedPlayer.currentPrice;
+  const renderFlashMultipliers = () => {
+    if (flashMultipliers.size === 0) return null;
 
     return (
-      <Card style={styles.tradeCard} mode="outlined">
-        <Card.Content>
-          <Title style={styles.tradeTitle}>
-            Quick Trade: {selectedPlayer.name}
-          </Title>
-          <Text style={styles.tradePrice}>
-            {formatCurrency(selectedPlayer.currentPrice)} per share
-          </Text>
+      <View style={styles.flashSection}>
+        <View style={styles.flashHeader}>
+          <Text style={styles.flashTitle}>⚡ FLASH MULTIPLIERS ACTIVE</Text>
+        </View>
 
-          <View style={styles.tradeButtons}>
-            <Button
-              mode="contained"
-              style={[styles.tradeButton, { backgroundColor: theme.colors.bullish }]}
-              disabled={!canTrade || !hasBalance}
-              onPress={() => handleTrade('buy')}
-            >
-              Buy 1 Share
-            </Button>
-            <Button
-              mode="contained"
-              style={[styles.tradeButton, { backgroundColor: theme.colors.bearish }]}
-              disabled={!canTrade}
-              onPress={() => handleTrade('sell')}
-            >
-              Sell 1 Share
-            </Button>
+        {Array.from(flashMultipliers.values()).map((flash: FlashMultiplier) => (
+          <View key={flash.playerId} style={styles.flashItem}>
+            <View style={styles.flashContent}>
+              <Text style={styles.flashPlayerName}>{flash.playerName}</Text>
+              <Text style={styles.flashDescription}>{flash.eventDescription}</Text>
+            </View>
+            <View style={styles.flashMultiplier}>
+              <Text style={styles.flashMultiplierText}>{flash.multiplier}x</Text>
+            </View>
           </View>
-
-          {!canTrade && (
-            <Text style={styles.tradeWarning}>
-              No live trades remaining today
-            </Text>
-          )}
-          {canTrade && !hasBalance && (
-            <Text style={styles.tradeWarning}>
-              Insufficient balance for purchase
-            </Text>
-          )}
-        </Card.Content>
-      </Card>
+        ))}
+      </View>
     );
   };
 
-  const handleTrade = (type: 'buy' | 'sell') => {
-    if (!selectedPlayer) return;
+  const renderPlayers = () => {
+    if (loading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={styles.loadingText}>Loading players...</Text>
+        </View>
+      );
+    }
 
-    Alert.alert(
-      'Confirm Trade',
-      `${type.toUpperCase()} 1 share of ${selectedPlayer.name} for ${formatCurrency(selectedPlayer.currentPrice)}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          onPress: () => {
-            // TODO: Implement actual trade execution
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            Alert.alert('Trade Executed!', `Successfully ${type === 'buy' ? 'bought' : 'sold'} 1 share of ${selectedPlayer.name}`);
-          }
-        }
-      ]
+    // Filter for active players if game is live, otherwise show all
+    const displayPlayers = currentGame
+      ? players.filter(p => currentGame.activePlayers.includes(p.id))
+      : players;
+
+    return (
+      <View style={styles.playersSection}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            {currentGame ? 'Live Players' : 'All Players'}
+          </Text>
+          <Text style={styles.sectionSubtitle}>
+            {displayPlayers.length} players available
+          </Text>
+        </View>
+
+        <FlatList
+          data={displayPlayers}
+          numColumns={2}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.playersGrid}
+          columnWrapperStyle={styles.playersRow}
+          renderItem={({ item: player }) => {
+            const multiplier = flashMultipliers.get(player.id)?.multiplier;
+
+            return (
+              <PlayerCard
+                player={player}
+                onBuy={() => handleQuickBuy(player)}
+                onSell={() => handleQuickSell(player)}
+                flashMultiplier={multiplier}
+                isLive={currentGame?.activePlayers.includes(player.id)}
+                compact={false}
+              />
+            );
+          }}
+        />
+      </View>
     );
   };
 
   const renderRecentEvents = () => {
-    if (gameEvents.length === 0) return null;
+    if (gameEvents.length === 0 || !currentGame) return null;
 
     return (
       <View style={styles.eventsSection}>
-        <Title style={styles.sectionTitle}>Recent Events</Title>
-        {gameEvents.slice(0, 5).map((event, index) => (
-          <Surface key={event.id} style={styles.eventItem} elevation={1}>
+        <Text style={styles.sectionTitle}>Recent Events</Text>
+
+        {gameEvents.slice(0, 3).map((event) => (
+          <View key={event.id} style={styles.eventItem}>
             <View style={styles.eventContent}>
               <Text style={styles.eventDescription}>{event.description}</Text>
-              <Text style={styles.eventTime}>{event.gameTime}</Text>
+              <Text style={styles.eventTime}>Q{event.quarter} • {event.gameTime}</Text>
             </View>
             {event.multiplier && (
-              <Chip
-                style={styles.eventMultiplier}
-                textStyle={{ fontSize: 10 }}
-              >
-                {formatMultiplier(event.multiplier)}
-              </Chip>
+              <View style={styles.eventMultiplier}>
+                <Text style={styles.eventMultiplierText}>
+                  {event.multiplier}x
+                </Text>
+              </View>
             )}
-          </Surface>
+          </View>
         ))}
       </View>
     );
@@ -337,13 +257,31 @@ export default function LiveTradingScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {renderGameHeader()}
-      {renderFlashMultipliers()}
-      {renderActivePlayers()}
-      {renderTradeActions()}
-      {renderRecentEvents()}
-    </ScrollView>
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {renderGameHeader()}
+        {renderFlashMultipliers()}
+        {renderPlayers()}
+        {renderRecentEvents()}
+      </ScrollView>
+
+      <TradeModal
+        visible={tradeModalVisible}
+        player={selectedPlayer}
+        tradeType={tradeType}
+        availableBalance={portfolio?.availableBalance || 0}
+        onClose={() => setTradeModalVisible(false)}
+        onConfirmTrade={handleConfirmTrade}
+        isLive={true}
+        tradesRemaining={portfolio?.tradesRemaining || 0}
+      />
+    </View>
   );
 }
 
@@ -351,6 +289,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  scrollView: {
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
@@ -361,225 +302,245 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     color: theme.colors.onBackground,
+    fontSize: 16,
+    fontWeight: '500',
   },
-  gameCard: {
-    margin: 16,
-    marginBottom: 8,
-  },
-  noGameContent: {
+
+  // No game state
+  noGameContainer: {
     alignItems: 'center',
-    paddingVertical: 40,
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 32,
   },
   noGameTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: theme.colors.onBackground,
     marginTop: 16,
+    marginBottom: 8,
   },
-  noGameText: {
-    marginTop: 8,
+  noGameSubtitle: {
+    fontSize: 16,
+    color: theme.colors.neutral,
     textAlign: 'center',
-    color: theme.colors.onSurface + '60',
+    lineHeight: 22,
   },
+
+  // Game header
   gameHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    backgroundColor: theme.colors.surface,
+    marginBottom: 16,
+  },
+  liveIndicatorContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   liveIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: theme.colors.liveActive,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
   liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: theme.colors.liveActive,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FFFFFF',
     marginRight: 6,
   },
   liveText: {
-    color: theme.colors.liveActive,
-    fontWeight: 'bold',
+    color: '#FFFFFF',
     fontSize: 12,
+    fontWeight: '700',
   },
   gameTime: {
-    fontSize: 16,
+    color: theme.colors.neutral,
+    fontSize: 14,
     fontWeight: '600',
   },
-  scoreBoard: {
+
+  // Score
+  scoreContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 20,
+  },
+  teamContainer: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  teamName: {
+    color: theme.colors.onSurface,
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  teamScore: {
+    color: theme.colors.onSurface,
+    fontSize: 32,
+    fontWeight: '900',
+  },
+  scoreDivider: {
+    paddingHorizontal: 20,
+  },
+  scoreSeparator: {
+    color: theme.colors.neutral,
+    fontSize: 24,
+    fontWeight: '300',
+  },
+
+  // Trading stats
+  tradingStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.cardBorder,
+  },
+  statBox: {
+    alignItems: 'center',
+  },
+  statValue: {
+    color: theme.colors.onSurface,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  statLabel: {
+    color: theme.colors.neutral,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+
+  // Flash multipliers
+  flashSection: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    backgroundColor: theme.colors.multiplierBg,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
+  flashHeader: {
     alignItems: 'center',
     marginBottom: 16,
   },
-  teamScore: {
-    alignItems: 'center',
-    minWidth: 60,
-  },
-  teamName: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  score: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  scoreSeparator: {
-    fontSize: 20,
-    marginHorizontal: 20,
-    color: theme.colors.onSurface + '60',
-  },
-  tradingInfo: {
-    alignItems: 'center',
-  },
-  tradesRemainingLabel: {
-    fontSize: 12,
-    color: theme.colors.onSurface + '60',
-    marginBottom: 4,
-  },
-  tradesChip: {
-    borderWidth: 0,
-  },
-  flashSection: {
-    margin: 16,
-    marginTop: 8,
-  },
   flashTitle: {
+    color: theme.colors.primary,
+    fontSize: 16,
+    fontWeight: '900',
     textAlign: 'center',
-    marginBottom: 12,
-    color: theme.colors.liveActive,
   },
-  flashCard: {
-    marginBottom: 8,
-    borderColor: theme.colors.multiplierGlow,
+  flashItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.cardBorder,
   },
   flashContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  flashInfo: {
     flex: 1,
   },
   flashPlayerName: {
-    fontWeight: 'bold',
+    color: theme.colors.onSurface,
     fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 2,
   },
   flashDescription: {
-    color: theme.colors.onSurface + '80',
-    marginTop: 2,
+    color: theme.colors.neutral,
+    fontSize: 14,
+    fontWeight: '500',
   },
-  multiplierChip: {
-    borderWidth: 0,
+  flashMultiplier: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
-  multiplierText: {
-    fontWeight: 'bold',
-    fontSize: 16,
+  flashMultiplierText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '900',
   },
+
+  // Players section
   playersSection: {
-    marginHorizontal: 16,
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  sectionHeader: {
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 18,
-    marginBottom: 12,
+    color: theme.colors.onBackground,
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 4,
   },
-  playersScroll: {
-    paddingRight: 16,
-  },
-  playerCard: {
-    width: 140,
-    marginRight: 12,
-    position: 'relative',
-  },
-  selectedPlayer: {
-    borderColor: theme.colors.primary,
-    borderWidth: 2,
-  },
-  playerContent: {
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  flashBadge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: theme.colors.multiplierBg,
-    borderRadius: 10,
-    padding: 2,
-  },
-  playerName: {
-    textAlign: 'center',
-    fontWeight: '600',
-    fontSize: 12,
-    marginBottom: 2,
-  },
-  playerTeam: {
-    fontSize: 10,
-    color: theme.colors.onSurface + '60',
-    marginBottom: 8,
-  },
-  playerPriceInfo: {
-    alignItems: 'center',
-  },
-  playerPrice: {
-    fontWeight: 'bold',
-    marginBottom: 2,
-  },
-  playerChange: {
-    fontSize: 12,
+  sectionSubtitle: {
+    color: theme.colors.neutral,
+    fontSize: 14,
     fontWeight: '500',
   },
-  tradeCard: {
-    margin: 16,
-    marginTop: 8,
+  playersGrid: {
+    paddingBottom: 20,
+    paddingHorizontal: 16,
   },
-  tradeTitle: {
-    textAlign: 'center',
-    marginBottom: 8,
+  playersRow: {
+    justifyContent: 'space-around',
   },
-  tradePrice: {
-    textAlign: 'center',
-    color: theme.colors.onSurface + '80',
-    marginBottom: 16,
-  },
-  tradeButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  tradeButton: {
-    flex: 1,
-  },
-  tradeWarning: {
-    textAlign: 'center',
-    color: theme.colors.error,
-    fontSize: 12,
-    marginTop: 8,
-  },
+
+  // Events section
   eventsSection: {
-    margin: 16,
-    marginTop: 8,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 20,
   },
   eventItem: {
-    padding: 12,
-    marginBottom: 8,
-    borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: theme.colors.surface,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.cardBorder,
   },
   eventContent: {
     flex: 1,
   },
   eventDescription: {
+    color: theme.colors.onSurface,
     fontSize: 14,
-    marginBottom: 2,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   eventTime: {
+    color: theme.colors.neutral,
     fontSize: 12,
-    color: theme.colors.onSurface + '60',
+    fontWeight: '500',
   },
   eventMultiplier: {
-    marginLeft: 8,
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  eventMultiplierText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
 });
