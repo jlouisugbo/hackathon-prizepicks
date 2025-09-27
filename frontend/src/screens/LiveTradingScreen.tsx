@@ -11,6 +11,7 @@ import {
 import {
   Text,
   ActivityIndicator,
+  FAB,
 } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -18,6 +19,7 @@ import * as Haptics from 'expo-haptics';
 // Components
 import PlayerCard from '../components/PlayerCard';
 import TradeModal from '../components/TradeModal';
+import LiveChat from '../components/LiveChat';
 
 // Contexts
 import { useGame } from '../context/GameContext';
@@ -44,6 +46,7 @@ export default function LiveTradingScreen() {
   const [tradeModalVisible, setTradeModalVisible] = useState(false);
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
   const [refreshing, setRefreshing] = useState(false);
+  const [chatVisible, setChatVisible] = useState(false);
 
   useEffect(() => {
     if (isConnected) {
@@ -280,6 +283,22 @@ export default function LiveTradingScreen() {
         onConfirmTrade={handleConfirmTrade}
         isLive={true}
         tradesRemaining={portfolio?.tradesRemaining || 0}
+      />
+
+      {/* Chat FAB */}
+      {liveGame && (
+        <FAB
+          icon="chat"
+          style={styles.chatFAB}
+          onPress={() => setChatVisible(true)}
+          label="Chat"
+        />
+      )}
+
+      {/* Live Chat Modal */}
+      <LiveChat
+        visible={chatVisible}
+        onClose={() => setChatVisible(false)}
       />
     </View>
   );
@@ -545,5 +564,13 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
+  },
+
+  // Chat FAB
+  chatFAB: {
+    position: 'absolute',
+    right: 16,
+    bottom: 20,
+    backgroundColor: theme.colors.primary,
   },
 });

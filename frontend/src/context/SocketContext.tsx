@@ -27,6 +27,10 @@ interface SocketContextType {
   notifications: NotificationData[];
   userCount: number;
   liveGame: LiveGame | null;
+  tradeFeed: any[];
+  marketImpacts: any[];
+  volumeAlerts: any[];
+  marketSentiment: any | null;
 
   // Socket actions
   joinRoom: (userId: string, username: string) => void;
@@ -58,6 +62,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [userCount, setUserCount] = useState(0);
   const [liveGame, setLiveGame] = useState<LiveGame | null>(null);
+  const [tradeFeed, setTradeFeed] = useState<any[]>([]);
+  const [marketImpacts, setMarketImpacts] = useState<any[]>([]);
+  const [volumeAlerts, setVolumeAlerts] = useState<any[]>([]);
+  const [marketSentiment, setMarketSentiment] = useState<any | null>(null);
 
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const reconnectAttempts = useRef(0);
@@ -214,6 +222,30 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
+    // Market Impact Events
+    newSocket.on('trade_feed', (trade: any) => {
+      setTradeFeed(prev => [trade, ...prev].slice(0, 50)); // Keep last 50 trades
+    });
+
+    newSocket.on('market_impact', (impact: any) => {
+      setMarketImpacts(prev => [impact, ...prev].slice(0, 20)); // Keep last 20 impacts
+      console.log('📈 Market Impact:', impact.description);
+    });
+
+    newSocket.on('volume_alert', (alert: any) => {
+      setVolumeAlerts(prev => [alert, ...prev].slice(0, 10)); // Keep last 10 alerts
+      console.log('📊 Volume Alert:', alert.description);
+    });
+
+    newSocket.on('market_sentiment', (sentiment: any) => {
+      setMarketSentiment(sentiment);
+      console.log('📊 Market Sentiment:', sentiment.sentiment);
+    });
+
+    newSocket.on('trading_activity', (activity: any) => {
+      console.log('📊 Trading Activity:', activity.playerName);
+    });
+
     setSocket(newSocket);
   };
 
@@ -305,6 +337,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     notifications,
     userCount,
     liveGame,
+    tradeFeed,
+    marketImpacts,
+    volumeAlerts,
+    marketSentiment,
     joinRoom,
     sendChatMessage,
     subscribeToPlayer,
