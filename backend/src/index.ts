@@ -30,7 +30,14 @@ const io = new Server(server, {
     origin: process.env.CORS_ORIGIN || "http://localhost:19006",
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
-  }
+  },
+  path: '/socket.io/',
+  transports: ['polling', 'websocket'],
+  allowEIO3: true,
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  connectTimeout: 45000,
+  upgradeTimeout: 30000
 });
 
 const PORT = parseInt(process.env.PORT || '3002', 10);

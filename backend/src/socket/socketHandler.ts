@@ -1,5 +1,6 @@
 import { Server, Socket } from 'socket.io';
 import { SocketEvents, ChatMessage, NotificationData } from '../types';
+import { getCurrentGame } from '../data/mockData';
 import { v4 as uuidv4 } from 'uuid';
 import { authService } from '../services/authService';
 
@@ -89,6 +90,7 @@ export function initializeSocketHandlers(io: Server) {
       userRooms.get(user.userId)!.add(`user:${user.userId}`);
 
       console.log(`✅ User ${user.username} (${user.userId}) joined room: general`);
+      console.log(`🔌 Socket ${socket.id} connected to rooms:`, Array.from(socket.rooms));
 
       // Send welcome message
       const welcomeNotification = {
@@ -177,6 +179,26 @@ export function initializeSocketHandlers(io: Server) {
       userRooms.get(user.userId)!.add('live_trading');
 
       console.log(`🔥 User ${user.username} joined live trading room`);
+
+      // Send the current live game immediately upon joining
+      const currentGame = getCurrentGame();
+      if (currentGame) {
+        console.log(`📤 Sending live game data to ${user.username}:`, {
+          id: currentGame.id,
+          homeTeam: currentGame.homeTeam,
+          awayTeam: currentGame.awayTeam,
+          homeScore: currentGame.homeScore,
+          awayScore: currentGame.awayScore,
+          quarter: currentGame.quarter,
+          timeRemaining: currentGame.timeRemaining
+        });
+        // Emit single live game for simplicity (frontend has fallback)
+        socket.emit('live_game', currentGame);
+        // Optionally also emit as an array for multi-game support
+        socket.emit('live_games', [currentGame]);
+      } else {
+        console.log(`⚠️ No current game available to send to ${user.username}`);
+      }
     });
 
     socket.on('leave_live_trading', () => {

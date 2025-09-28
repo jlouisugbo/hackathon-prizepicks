@@ -414,8 +414,9 @@ function startScoreUpdates(io: Server) {
     // Update game state
     updateGameScore(newHomeScore, newAwayScore, newQuarter, newGameTime.time);
 
-    // Broadcast score update
-    io.to('general').emit('game_score_update', {
+    // Broadcast score update (include gameId for frontend mapping)
+    const scoreUpdateData = {
+      gameId: currentGame.id,
       homeScore: newHomeScore,
       awayScore: newAwayScore,
       quarter: newQuarter,
@@ -425,9 +426,12 @@ function startScoreUpdates(io: Server) {
         points: pointsScored,
         teamName: homeTeamScores ? currentGame.homeTeam : currentGame.awayTeam
       }
-    });
+    };
+
+    io.to('general').emit('game_score_update', scoreUpdateData);
 
     console.log(`🏀 Score Update: ${currentGame.awayTeam} ${newAwayScore} - ${newHomeScore} ${currentGame.homeTeam} | Q${newQuarter} ${newGameTime.time}`);
+    console.log(`📡 Broadcasting game_score_update to 'general' room:`, scoreUpdateData);
 
   }, SCORE_UPDATE_INTERVAL) as unknown as NodeJS.Timeout;
 }

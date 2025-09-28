@@ -127,7 +127,36 @@ export function initializeMockData() {
       volatility: 0.21,
       jersey: 3,
       stats: { ppg: 25.9, rpg: 12.5, apg: 2.6, fg: 0.564, threePt: 0.270, gamesPlayed: 76, minutesPerGame: 35.1 }
-    }
+    },
+    { name: 'Kyrie Irving', team: 'DAL', position: 'PG' as const, basePrice: 155.40, volatility: 0.22, jersey: 11, stats: { ppg: 26.9, rpg: 5.0, apg: 5.9, fg: 0.489, threePt: 0.394, gamesPlayed: 71, minutesPerGame: 35.2 }},
+    { name: 'James Harden', team: 'LAC', position: 'SG' as const, basePrice: 149.30, volatility: 0.19, jersey: 1, stats: { ppg: 21.0, rpg: 6.1, apg: 10.7, fg: 0.461, threePt: 0.385, gamesPlayed: 72, minutesPerGame: 34.0 }},
+    { name: 'Kawhi Leonard', team: 'LAC', position: 'SF' as const, basePrice: 172.10, volatility: 0.18, jersey: 2, stats: { ppg: 24.8, rpg: 6.5, apg: 3.9, fg: 0.512, threePt: 0.411, gamesPlayed: 68, minutesPerGame: 33.1 }},
+    { name: 'Paul George', team: 'PHI', position: 'SF' as const, basePrice: 158.80, volatility: 0.20, jersey: 13, stats: { ppg: 23.6, rpg: 6.1, apg: 4.5, fg: 0.470, threePt: 0.412, gamesPlayed: 74, minutesPerGame: 34.8 }},
+    { name: 'Devin Booker', team: 'PHX', position: 'SG' as const, basePrice: 170.25, volatility: 0.21, jersey: 1, stats: { ppg: 27.8, rpg: 4.5, apg: 6.8, fg: 0.493, threePt: 0.377, gamesPlayed: 70, minutesPerGame: 35.5 }},
+    { name: 'Bradley Beal', team: 'PHX', position: 'SG' as const, basePrice: 142.50, volatility: 0.20, jersey: 3, stats: { ppg: 22.4, rpg: 4.2, apg: 5.1, fg: 0.485, threePt: 0.368, gamesPlayed: 64, minutesPerGame: 33.9 }},
+    { name: 'Donovan Mitchell', team: 'CLE', position: 'SG' as const, basePrice: 167.60, volatility: 0.22, jersey: 45, stats: { ppg: 27.4, rpg: 4.3, apg: 5.2, fg: 0.478, threePt: 0.383, gamesPlayed: 73, minutesPerGame: 35.8 }},
+    { name: 'Darius Garland', team: 'CLE', position: 'PG' as const, basePrice: 138.70, volatility: 0.20, jersey: 10, stats: { ppg: 21.6, rpg: 2.7, apg: 7.8, fg: 0.471, threePt: 0.397, gamesPlayed: 72, minutesPerGame: 34.2 }},
+    { name: 'Jalen Brunson', team: 'NYK', position: 'PG' as const, basePrice: 160.15, volatility: 0.23, jersey: 11, stats: { ppg: 28.7, rpg: 3.6, apg: 6.7, fg: 0.481, threePt: 0.409, gamesPlayed: 75, minutesPerGame: 35.4 }},
+    { name: 'Julius Randle', team: 'NYK', position: 'PF' as const, basePrice: 152.00, volatility: 0.21, jersey: 30, stats: { ppg: 24.2, rpg: 9.8, apg: 5.0, fg: 0.472, threePt: 0.345, gamesPlayed: 73, minutesPerGame: 35.8 }},
+    { name: 'Tyrese Haliburton', team: 'IND', position: 'PG' as const, basePrice: 165.50, volatility: 0.24, jersey: 0, stats: { ppg: 21.1, rpg: 4.0, apg: 10.9, fg: 0.490, threePt: 0.392, gamesPlayed: 70, minutesPerGame: 34.0 }},
+    { name: 'Shai Gilgeous-Alexander', team: 'OKC', position: 'PG' as const, basePrice: 188.90, volatility: 0.25, jersey: 2, stats: { ppg: 31.4, rpg: 5.6, apg: 6.2, fg: 0.538, threePt: 0.378, gamesPlayed: 75, minutesPerGame: 34.9 }},
+    { name: 'Chet Holmgren', team: 'OKC', position: 'C' as const, basePrice: 150.20, volatility: 0.26, jersey: 7, stats: { ppg: 16.8, rpg: 7.9, apg: 2.5, fg: 0.534, threePt: 0.375, gamesPlayed: 76, minutesPerGame: 29.8 }},
+    { name: 'Jamal Murray', team: 'DEN', position: 'PG' as const, basePrice: 158.40, volatility: 0.21, jersey: 27, stats: { ppg: 22.0, rpg: 4.1, apg: 6.2, fg: 0.479, threePt: 0.404, gamesPlayed: 66, minutesPerGame: 32.8 }},
+    { name: 'Aaron Gordon', team: 'DEN', position: 'PF' as const, basePrice: 139.60, volatility: 0.18, jersey: 50, stats: { ppg: 16.3, rpg: 6.6, apg: 3.4, fg: 0.563, threePt: 0.345, gamesPlayed: 74, minutesPerGame: 31.1 }},
+  { name: "De'Aaron Fox", team: 'SAC', position: 'PG' as const, basePrice: 162.30, volatility: 0.24, jersey: 5, stats: { ppg: 26.6, rpg: 4.2, apg: 6.5, fg: 0.479, threePt: 0.368, gamesPlayed: 74, minutesPerGame: 35.8 }},
+    { name: 'Tyrese Maxey', team: 'PHI', position: 'PG' as const, basePrice: 156.30, volatility: 0.24, jersey: 0, stats: { ppg: 25.1, rpg: 3.7, apg: 6.2, fg: 0.482, threePt: 0.411, gamesPlayed: 76, minutesPerGame: 37.5 }},
+    { name: 'Anthony Edwards', team: 'MIN', position: 'SG' as const, basePrice: 171.70, volatility: 0.25, jersey: 5, stats: { ppg: 26.5, rpg: 5.4, apg: 4.4, fg: 0.463, threePt: 0.368, gamesPlayed: 79, minutesPerGame: 36.0 }},
+    { name: 'Karl-Anthony Towns', team: 'MIN', position: 'C' as const, basePrice: 165.10, volatility: 0.20, jersey: 32, stats: { ppg: 22.5, rpg: 8.8, apg: 3.0, fg: 0.506, threePt: 0.413, gamesPlayed: 72, minutesPerGame: 33.2 }},
+    { name: 'Jayson Tatum', team: 'BOS', position: 'SF' as const, basePrice: 180.50, volatility: 0.19, jersey: 0, stats: { ppg: 27.1, rpg: 8.4, apg: 4.3, fg: 0.473, threePt: 0.377, gamesPlayed: 74, minutesPerGame: 36.0 }},
+    { name: 'Jaylen Brown', team: 'BOS', position: 'SG' as const, basePrice: 160.80, volatility: 0.20, jersey: 7, stats: { ppg: 23.0, rpg: 6.5, apg: 3.6, fg: 0.492, threePt: 0.359, gamesPlayed: 72, minutesPerGame: 34.5 }},
+    { name: 'Jimmy Butler', team: 'MIA', position: 'SF' as const, basePrice: 162.90, volatility: 0.18, jersey: 22, stats: { ppg: 22.9, rpg: 5.9, apg: 5.3, fg: 0.536, threePt: 0.414, gamesPlayed: 64, minutesPerGame: 33.0 }},
+    { name: 'Bam Adebayo', team: 'MIA', position: 'C' as const, basePrice: 150.60, volatility: 0.19, jersey: 13, stats: { ppg: 19.3, rpg: 10.4, apg: 3.9, fg: 0.519, threePt: 0.091, gamesPlayed: 75, minutesPerGame: 34.2 }},
+    { name: 'Trae Young', team: 'ATL', position: 'PG' as const, basePrice: 157.40, volatility: 0.24, jersey: 11, stats: { ppg: 26.2, rpg: 2.9, apg: 10.2, fg: 0.433, threePt: 0.372, gamesPlayed: 73, minutesPerGame: 36.2 }},
+    { name: 'Dejounte Murray', team: 'ATL', position: 'SG' as const, basePrice: 146.20, volatility: 0.22, jersey: 5, stats: { ppg: 22.5, rpg: 5.3, apg: 6.3, fg: 0.466, threePt: 0.371, gamesPlayed: 74, minutesPerGame: 36.0 }},
+    { name: 'Zion Williamson', team: 'NOP', position: 'PF' as const, basePrice: 162.10, volatility: 0.27, jersey: 1, stats: { ppg: 23.0, rpg: 6.4, apg: 4.7, fg: 0.583, threePt: 0.345, gamesPlayed: 61, minutesPerGame: 30.5 }},
+    { name: 'Brandon Ingram', team: 'NOP', position: 'SF' as const, basePrice: 154.70, volatility: 0.22, jersey: 14, stats: { ppg: 23.9, rpg: 5.1, apg: 5.7, fg: 0.484, threePt: 0.387, gamesPlayed: 68, minutesPerGame: 34.0 }},
+    { name: 'LaMelo Ball', team: 'CHA', position: 'PG' as const, basePrice: 150.10, volatility: 0.26, jersey: 1, stats: { ppg: 23.3, rpg: 6.4, apg: 8.4, fg: 0.436, threePt: 0.378, gamesPlayed: 58, minutesPerGame: 34.6 }},
+    { name: 'Victor Wembanyama', team: 'SAS', position: 'C' as const, basePrice: 170.90, volatility: 0.30, jersey: 1, stats: { ppg: 21.4, rpg: 10.6, apg: 3.9, fg: 0.466, threePt: 0.323, gamesPlayed: 71, minutesPerGame: 29.7 }}
   ];
 
   // Create player objects
