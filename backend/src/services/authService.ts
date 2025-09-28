@@ -63,6 +63,11 @@ class AuthService {
 
   // Register new user (with Supabase fallback to in-memory)
   async register(credentials: RegisterCredentials): Promise<{ user: AuthUser; token: string }> {
+    const { data, error } = await supabase.auth.signUp({
+      email: credentials.email,
+      password: credentials.password
+    });
+
     try {
       // For demo: simple validation
       if (!credentials.email || !credentials.password || !credentials.username) {
@@ -151,6 +156,11 @@ class AuthService {
 
   // Login user
   async login(credentials: LoginCredentials): Promise<{ user: AuthUser; token: string }> {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: credentials.email,
+      password: credentials.password,
+    })
+    
     try {
       if (!credentials.email || !credentials.password) {
         throw new Error('Email and password are required');
