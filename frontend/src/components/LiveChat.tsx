@@ -66,7 +66,16 @@ export default function LiveChat({ visible, onClose }: LiveChatProps) {
 
     // Listen for chat messages
     const handleChatMessage = (message: ChatMessage) => {
-      setMessages(prev => [...prev, message].slice(-50)); // Keep last 50 messages
+      setMessages(prev => {
+        // Deduplicate consecutive messages with same id and content
+        if (prev.length > 0) {
+          const last = prev[prev.length - 1];
+          if (last.id === message.id && last.message === message.message) {
+            return prev;
+          }
+        }
+        return [...prev, message].slice(-50);
+      });
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
