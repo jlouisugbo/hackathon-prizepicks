@@ -1,20 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   ScrollView,
   StyleSheet,
   Alert,
   Dimensions,
-  FlatList,
   RefreshControl,
 } from 'react-native';
-import {
-  Text,
-  ActivityIndicator,
-  FAB,
-  TextInput,
-  Button,
-} from 'react-native-paper';
+import { Text, ActivityIndicator, FAB, TextInput, Button } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -22,7 +15,11 @@ import * as Haptics from 'expo-haptics';
 import PlayerCard from '../components/PlayerCard';
 import TradeModal from '../components/TradeModal';
 import LiveChat from '../components/LiveChat';
-import { useRef } from 'react';
+import GameHeader from '../components/GameHeader';
+import PlayerList from '../components/PlayerList';
+import FlashMultipliers from '../components/FlashMultipliers';
+import RecentEvents from '../components/RecentEvents';
+//
 
 // Contexts
 import { useGame } from '../context/GameContext';
@@ -30,12 +27,7 @@ import { useSocket } from '../context/SocketContext';
 import { usePortfolio } from '../context/PortfolioContext';
 import { theme } from '../theme/theme';
 import { formatCurrency, formatPercent } from '../utils/formatters';
-import { Player, TradeRequest, FlashMultiplier } from '@player-stock-market/shared';
-// Modularized components
-import GameHeader from '../components/GameHeader';
-import PlayerList from '../components/PlayerList';
-import FlashMultipliers from '../components/FlashMultipliers';
-import RecentEvents from '../components/RecentEvents';
+import { Player, TradeRequest, FlashMultiplier, LiveGame } from '../../../shared/src/types';
 
 const { width } = Dimensions.get('window');
 
@@ -61,6 +53,7 @@ export default function LiveTradingScreen() {
   const [unreadMessages, setUnreadMessages] = useState(0);
   const chatRef = useRef<any>(null);
   const { players, loading, executeTrade } = useGame();
+  console.log('[LiveTradingScreen] mount: isConnected, liveGame, liveGames, players:', isConnected, liveGame, liveGames?.length, players?.length);
   // (Removed duplicate destructuring)
   const { portfolio, refreshPortfolio } = usePortfolio();
 
@@ -88,7 +81,13 @@ export default function LiveTradingScreen() {
 
   useEffect(() => {
     if (isConnected) {
-      joinLiveTrading();
+      console.log('[LiveTradingScreen] isConnected changed -> joining live trading');
+      try { joinLiveTrading(); } catch (e) { console.warn('joinLiveTrading failed', e); }
+      // If no liveGame yet, pick from list or force a demo
+      if (!liveGame && liveGames && liveGames.length > 0) {
+        console.log('[LiveTradingScreen] selecting first liveGame from list');
+        setLiveGame(liveGames[0] as LiveGame);
+      }
     }
   }, [isConnected]);
 
@@ -97,6 +96,37 @@ export default function LiveTradingScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     }
   }, [flashMultipliers]);
+
+  // If still no liveGame but we have a list, pick one
+  useEffect(() => {
+    if (!liveGame && liveGames && liveGames.length > 0) {
+      console.log('[LiveTradingScreen] ensuring liveGame from liveGames update');
+      setLiveGame(liveGames[0] as LiveGame);
+    }
+  }, [liveGames, liveGame, setLiveGame]);
+
+  // Absolute last-resort demo to prevent !liveGame state
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (!liveGame) {
+        const demo: LiveGame = {
+          id: 'demo-screen',
+          homeTeam: 'LAL',
+          awayTeam: 'BOS',
+          homeScore: 0,
+          awayScore: 0,
+          quarter: 1,
+          timeRemaining: '12:00',
+          isActive: true,
+          startTime: Date.now(),
+          activePlayers: [],
+        };
+        console.warn('[LiveTradingScreen] forcing DEMO liveGame fallback');
+        setLiveGame(demo);
+      }
+    }, 2500);
+    return () => clearTimeout(t);
+  }, [liveGame, setLiveGame]);
 
   const onRefresh = async () => {
     setRefreshing(true);
