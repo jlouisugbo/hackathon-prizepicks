@@ -70,6 +70,10 @@ export default function LiveChat({ visible, onClose }: LiveChatProps) {
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
+      // Dispatch notification event if chat is closed
+      if (!visible && typeof window !== 'undefined' && window.dispatchEvent) {
+        window.dispatchEvent(new CustomEvent('livechat:new_message'));
+      }
     };
 
     // Listen for trade feed updates

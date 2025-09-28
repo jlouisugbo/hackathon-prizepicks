@@ -20,6 +20,7 @@ import * as Haptics from 'expo-haptics';
 import PlayerCard from '../components/PlayerCard';
 import TradeModal from '../components/TradeModal';
 import LiveChat from '../components/LiveChat';
+import { useRef } from 'react';
 
 // Contexts
 import { useGame } from '../context/GameContext';
@@ -32,6 +33,9 @@ import { Player, TradeRequest, FlashMultiplier } from '../../../../shared/src/ty
 const { width } = Dimensions.get('window');
 
 export default function LiveTradingScreen() {
+  // Notification badge state for chat
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const chatRef = useRef<any>(null);
   const { players, loading, executeTrade } = useGame();
   const {
     flashMultipliers,
@@ -47,6 +51,22 @@ export default function LiveTradingScreen() {
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
   const [refreshing, setRefreshing] = useState(false);
   const [chatVisible, setChatVisible] = useState(false);
+  // Listen for new chat messages via WebSocket
+  useEffect(() => {
+    if (!chatVisible && window && window.addEventListener) {
+      // Listen for custom event from LiveChat
+      const handler = (e: any) => {
+        setUnreadMessages((prev) => prev + 1);
+      };
+      window.addEventListener('livechat:new_message', handler);
+      return () => window.removeEventListener('livechat:new_message', handler);
+    }
+  }, [chatVisible]);
+
+  // Reset unread count when chat is opened
+  useEffect(() => {
+    if (chatVisible) setUnreadMessages(0);
+  }, [chatVisible]);
 
   useEffect(() => {
     if (isConnected) {
@@ -284,15 +304,20 @@ export default function LiveTradingScreen() {
         tradesRemaining={portfolio?.tradesRemaining || 0}
       />
 
-      {/* Chat FAB */}
-      {liveGame && (
+      {/* Chat FAB - always visible */}
+      <View>
         <FAB
           icon="chat"
           style={styles.chatFAB}
           onPress={() => setChatVisible(true)}
           label="Chat"
         />
-      )}
+        {unreadMessages > 0 && (
+          <View style={styles.chatBadge}>
+            <Text style={styles.chatBadgeText}>{unreadMessages}</Text>
+          </View>
+        )}
+      </View>
 
       {/* Live Chat Modal */}
       <LiveChat
@@ -304,6 +329,24 @@ export default function LiveTradingScreen() {
 }
 
 const styles = StyleSheet.create({
+  chatBadge: {
+    position: 'absolute',
+    right: 10,
+    bottom: 60,
+    backgroundColor: theme.colors.error,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  chatBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    paddingHorizontal: 4,
+  },
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
