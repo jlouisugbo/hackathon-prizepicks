@@ -46,12 +46,16 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static files for demo
 app.use(express.static('public'));
 
-// Health check endpoint
+// Health check endpoint - optimized for Railway
+let initializationComplete = false;
+
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    initialized: initializationComplete,
+    port: PORT
   });
 });
 
@@ -82,27 +86,38 @@ app.use('*', (req, res) => {
   });
 });
 
-// Initialize mock data and socket handlers
-initializeMockData();
-initializeSocketHandlers(io);
-
-// Initialize Supabase (optional for demo)
-initializeSupabaseTables();
-
-// Start game simulation (handles all price updates globally)
-startGameSimulation(io);
-
-// IMPORTANT: PriceEngine auto-updates are DISABLED to prevent double refreshing
-// Game simulation handles ALL price updates to ensure single global update loop
-// This ensures price updates are consistent across all connected users
-const priceEngine = PriceEngine.getInstance();
-const players = getPlayers();
-
+// Start server FIRST for Railway health checks
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 CORS origin: ${process.env.CORS_ORIGIN || 'http://localhost:19006'}`);
   console.log(`⚡ Socket.IO server ready`);
+
+  // Initialize everything AFTER server starts (async)
+  setTimeout(async () => {
+    try {
+      console.log('🔄 Starting background initialization...');
+
+      // Initialize mock data and socket handlers
+      initializeMockData();
+      initializeSocketHandlers(io);
+
+      // Initialize Supabase (optional for demo)
+      initializeSupabaseTables();
+
+      // Initialize price engine
+      const priceEngine = PriceEngine.getInstance();
+      const players = getPlayers();
+
+      // Start game simulation LAST (most resource intensive)
+      startGameSimulation(io);
+
+      initializationComplete = true;
+      console.log('✅ Background initialization complete');
+    } catch (error) {
+      console.error('❌ Initialization error:', error);
+    }
+  }, 100); // Small delay to ensure server is fully ready
 });
 
 // Graceful shutdown handling for Railway
