@@ -70,9 +70,13 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
+  const isConnectingRef = useRef(false);
+  const hasJoinedRoomRef = useRef(false);
 
   useEffect(() => {
-    connectSocket();
+    if (!isConnectingRef.current) {
+      connectSocket();
+    }
 
     return () => {
       if (socket) {
@@ -85,6 +89,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const connectSocket = () => {
+    if (isConnectingRef.current) return;
+    
+    isConnectingRef.current = true;
     console.log('🔌 Connecting to socket server:', SOCKET_URL);
 
     const newSocket = io(SOCKET_URL, {
@@ -103,6 +110,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     newSocket.on('disconnect', (reason) => {
       console.log('❌ Socket disconnected:', reason);
       setIsConnected(false);
+      hasJoinedRoomRef.current = false; // Reset room join flag
 
       // Auto-reconnect logic
       if (reason === 'io server disconnect') {
@@ -246,7 +254,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       console.log('📊 Trading Activity:', activity.playerName);
     });
 
+    // Set socket after all event listeners are attached
     setSocket(newSocket);
+    isConnectingRef.current = false;
   };
 
   const handleReconnect = () => {
@@ -267,7 +277,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   // Socket action functions
   const joinRoom = (userId: string, username: string) => {
-    if (socket && isConnected) {
+    if (socket && isConnected && !hasJoinedRoomRef.current) {
+      hasJoinedRoomRef.current = true;
       socket.emit('join_room', { userId, username });
     }
   };

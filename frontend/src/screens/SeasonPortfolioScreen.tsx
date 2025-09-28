@@ -47,7 +47,7 @@ export default function SeasonPortfolioScreen() {
         updateHoldingPrice(playerId, update.price);
       });
     }
-  }, [priceUpdates, portfolio]);
+  }, [priceUpdates]);
 
   const onRefresh = async () => {
     setRefreshing(true);
