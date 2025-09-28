@@ -31,10 +31,29 @@ import { usePortfolio } from '../context/PortfolioContext';
 import { theme } from '../theme/theme';
 import { formatCurrency, formatPercent } from '../utils/formatters';
 import { Player, TradeRequest, FlashMultiplier } from '@player-stock-market/shared';
+// Modularized components
+import GameHeader from '../components/GameHeader';
+import PlayerList from '../components/PlayerList';
+import FlashMultipliers from '../components/FlashMultipliers';
+import RecentEvents from '../components/RecentEvents';
 
 const { width } = Dimensions.get('window');
 
 export default function LiveTradingScreen() {
+  // Dropdown state for selecting live game
+  const [gameMenuVisible, setGameMenuVisible] = useState(false);
+  // ...existing context destructuring...
+  const {
+    flashMultipliers,
+    gameEvents,
+    isConnected,
+    joinLiveTrading,
+    liveGame,
+    setLiveGame,
+    liveGames
+  } = useSocket();
+  // Now initialize selectedGameId after liveGame is defined
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(liveGame?.id || null);
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMultiplier, setFilterMultiplier] = useState(false);
@@ -42,13 +61,7 @@ export default function LiveTradingScreen() {
   const [unreadMessages, setUnreadMessages] = useState(0);
   const chatRef = useRef<any>(null);
   const { players, loading, executeTrade } = useGame();
-  const {
-    flashMultipliers,
-    gameEvents,
-    isConnected,
-    joinLiveTrading,
-    liveGame
-  } = useSocket();
+  // (Removed duplicate destructuring)
   const { portfolio, refreshPortfolio } = usePortfolio();
 
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
@@ -113,65 +126,7 @@ export default function LiveTradingScreen() {
     }
   };
 
-  const renderGameHeader = () => {
-    if (!liveGame) {
-      return (
-        <View style={styles.noGameContainer}>
-          <Ionicons name="basketball-outline" size={64} color={theme.colors.neutral} />
-          <Text style={styles.noGameTitle}>No Live Game</Text>
-          <Text style={styles.noGameSubtitle}>
-            Live trading will be available during games
-          </Text>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.gameHeader}>
-        {/* Live indicator */}
-        <View style={styles.liveIndicatorContainer}>
-          <View style={styles.liveIndicator}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveText}>LIVE</Text>
-          </View>
-          <Text style={styles.gameTime}>
-            Q{liveGame.quarter} • {liveGame.timeRemaining}
-          </Text>
-        </View>
-
-        {/* Score */}
-        <View style={styles.scoreContainer}>
-          <View style={styles.teamContainer}>
-            <Text style={styles.teamName}>{liveGame.awayTeam}</Text>
-            <Text style={styles.teamScore}>{liveGame.awayScore}</Text>
-          </View>
-
-          <View style={styles.scoreDivider}>
-            <Text style={styles.scoreSeparator}>-</Text>
-          </View>
-
-          <View style={styles.teamContainer}>
-            <Text style={styles.teamName}>{liveGame.homeTeam}</Text>
-            <Text style={styles.teamScore}>{liveGame.homeScore}</Text>
-          </View>
-        </View>
-
-        {/* Trading info */}
-        {portfolio && (
-          <View style={styles.tradingStats}>
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{portfolio.tradesRemaining}</Text>
-              <Text style={styles.statLabel}>Trades Left</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{formatCurrency(portfolio.availableBalance)}</Text>
-              <Text style={styles.statLabel}>Available</Text>
-            </View>
-          </View>
-        )}
-      </View>
-    );
-  };
+  // ...existing code...
 
   const renderFlashMultipliers = () => {
     if (flashMultipliers.size === 0) return null;
@@ -346,10 +301,38 @@ export default function LiveTradingScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {renderGameHeader()}
-        {renderFlashMultipliers()}
-        {renderPlayers()}
-        {renderRecentEvents()}
+        <GameHeader
+          liveGames={liveGames}
+          selectedGameId={selectedGameId}
+          setSelectedGameId={setSelectedGameId}
+          setLiveGame={setLiveGame}
+          liveGame={liveGame}
+          portfolio={portfolio}
+          theme={theme}
+        />
+        <FlashMultipliers
+          flashMultipliers={flashMultipliers}
+          players={players}
+          setSelectedPlayer={setSelectedPlayer}
+          setTradeType={setTradeType}
+          setTradeModalVisible={setTradeModalVisible}
+        />
+        <PlayerList
+          players={players}
+          liveGame={liveGame}
+          flashMultipliers={flashMultipliers}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          filterMultiplier={filterMultiplier}
+          setFilterMultiplier={setFilterMultiplier}
+          handleQuickBuy={handleQuickBuy}
+          handleQuickSell={handleQuickSell}
+          theme={theme}
+        />
+        <RecentEvents
+          gameEvents={gameEvents}
+          liveGame={liveGame}
+        />
       </ScrollView>
 
       <TradeModal
@@ -542,56 +525,62 @@ const styles = StyleSheet.create({
 
   // Flash multipliers
   flashSection: {
-    marginHorizontal: 16,
-    marginBottom: 16,
+    marginHorizontal: 8,
+    marginBottom: 8,
     backgroundColor: theme.colors.multiplierBg,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 8,
+    padding: 6,
     borderWidth: 1,
     borderColor: theme.colors.primary,
+    minHeight: 32,
   },
   flashHeader: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
+    paddingVertical: 2,
   },
   flashTitle: {
     color: theme.colors.primary,
-    fontSize: 16,
-    fontWeight: '900',
+    fontSize: 13,
+    fontWeight: '700',
     textAlign: 'center',
+    paddingVertical: 2,
   },
   flashItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: 2,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.cardBorder,
+    minHeight: 24,
   },
   flashContent: {
     flex: 1,
   },
   flashPlayerName: {
     color: theme.colors.onSurface,
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 2,
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 1,
   },
   flashDescription: {
     color: theme.colors.neutral,
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 11,
+    fontWeight: '400',
   },
   flashMultiplier: {
     backgroundColor: theme.colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    minWidth: 28,
+    alignItems: 'center',
   },
   flashMultiplierText: {
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '900',
+    fontSize: 11,
+    fontWeight: '700',
   },
 
   // Players section

@@ -27,6 +27,8 @@ interface SocketContextType {
   notifications: NotificationData[];
   userCount: number;
   liveGame: LiveGame | null;
+  setLiveGame: (game: LiveGame | null) => void;
+  liveGames: LiveGame[];
   tradeFeed: any[];
   marketImpacts: any[];
   volumeAlerts: any[];
@@ -62,12 +64,13 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [userCount, setUserCount] = useState(0);
   const [liveGame, setLiveGame] = useState<LiveGame | null>(null);
+  const [liveGames, setLiveGames] = useState<LiveGame[]>([]);
   const [tradeFeed, setTradeFeed] = useState<any[]>([]);
   const [marketImpacts, setMarketImpacts] = useState<any[]>([]);
   const [volumeAlerts, setVolumeAlerts] = useState<any[]>([]);
   const [marketSentiment, setMarketSentiment] = useState<any | null>(null);
 
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
   const isConnectingRef = useRef(false);
@@ -95,14 +98,34 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     console.log('🔌 Connecting to socket server:', SOCKET_URL);
 
     const newSocket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
-      timeout: 20000,
+      path: '/socket.io/',
+      transports: ['polling', 'websocket'],
+      timeout: 30000,
       forceNew: true,
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      autoConnect: true,
+    });
+
+    // Global event logger for debugging
+    newSocket.onAny((event, ...args) => {
+      console.log(`[Socket] Event: ${event}`, ...args);
+    });
+
+    // Fallback: listen for single live_game event
+    newSocket.on('live_game', (game: LiveGame) => {
+      console.log('[Socket] live_game received:', game);
+      setLiveGames([game]);
+      setLiveGame(game);
     });
 
     // Connection events
     newSocket.on('connect', () => {
       console.log('✅ Socket connected:', newSocket.id);
+      console.log('🔌 Transport:', newSocket.io.engine.transport.name);
+      console.log('🌐 URL:', SOCKET_URL);
       setIsConnected(true);
       reconnectAttempts.current = 0;
     });
@@ -202,7 +225,21 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       console.log('🏓 Pong received, latency:', Date.now() - data.timestamp, 'ms');
     });
 
+    // Listen for multiple live games
+    newSocket.on('live_games', (games: LiveGame[]) => {
+      console.log('[Socket] live_games received:', games);
+      setLiveGames(games);
+      // Always set liveGame to first if none selected or if current is not in the list
+      if (games.length > 0 && (!liveGame || !games.some(g => g.id === liveGame.id))) {
+        setLiveGame(games[0]);
+        console.log('[Socket] liveGame set to:', games[0]);
+      } else {
+        console.log('[Socket] liveGame remains:', liveGame);
+      }
+    });
+
     newSocket.on('game_score_update', (data: {
+      gameId?: string;
       homeScore: number;
       awayScore: number;
       quarter: number;
@@ -213,9 +250,37 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         teamName: string;
       };
     }) => {
+      console.log('🏀 [Frontend] game_score_update received:', data);
+      // Update liveGames list
+      setLiveGames(prevGames => {
+        if (data.gameId) {
+          return prevGames.map(game =>
+            game.id === data.gameId
+              ? { ...game, homeScore: data.homeScore, awayScore: data.awayScore, quarter: data.quarter, timeRemaining: data.timeRemaining }
+              : game
+          );
+        }
+        // No gameId: update first game or selected
+        if (prevGames.length > 0) {
+          const idx = liveGame ? prevGames.findIndex(g => g.id === liveGame.id) : 0;
+          const targetIndex = idx >= 0 ? idx : 0;
+          const updated = [...prevGames];
+          updated[targetIndex] = {
+            ...updated[targetIndex],
+            homeScore: data.homeScore,
+            awayScore: data.awayScore,
+            quarter: data.quarter,
+            timeRemaining: data.timeRemaining,
+          } as any;
+          return updated;
+        }
+        return prevGames;
+      });
+
+      // Update selected liveGame
       setLiveGame(prev => {
         if (!prev) return prev;
-
+        if (data.gameId && prev.id !== data.gameId) return prev;
         return {
           ...prev,
           homeScore: data.homeScore,
@@ -347,7 +412,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     marketData,
     notifications,
     userCount,
-    liveGame,
+  liveGame,
+  setLiveGame,
+  liveGames,
     tradeFeed,
     marketImpacts,
     volumeAlerts,

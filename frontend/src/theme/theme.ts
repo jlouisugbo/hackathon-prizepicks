@@ -1,54 +1,20 @@
-import { MD3DarkTheme, configureFonts } from 'react-native-paper';
+import { MD3DarkTheme } from 'react-native-paper';
 
-const fontConfig = {
-  web: {
-    regular: {
-      fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, Roboto, sans-serif',
-      fontWeight: '400' as const,
-    },
-    medium: {
-      fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, Roboto, sans-serif',
-      fontWeight: '600' as const,
-    },
-    light: {
-      fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, Roboto, sans-serif',
-      fontWeight: '300' as const,
-    },
-    thin: {
-      fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, Roboto, sans-serif',
-      fontWeight: '200' as const,
-    },
-  },
-  default: {
-    regular: {
-      fontFamily: 'System',
-      fontWeight: '400' as const,
-    },
-    medium: {
-      fontFamily: 'System',
-      fontWeight: '600' as const,
-    },
-    light: {
-      fontFamily: 'System',
-      fontWeight: '300' as const,
-    },
-    thin: {
-      fontFamily: 'System',
-      fontWeight: '200' as const,
-    },
-  },
-};
+// Use default MD3 fonts to avoid platform-specific font config issues
 
 // PrizePicks Dark Theme
 export const theme = {
   ...MD3DarkTheme,
-  fonts: configureFonts({ config: fontConfig }),
+  // fonts: MD3DarkTheme.fonts,
   colors: {
     ...MD3DarkTheme.colors,
     // Purple Theme Colors
-    primary: '#8B5CF6', // Purple primary
-    secondary: '#FF3A44', // Keep red for sells/negative
-    tertiary: '#06B6D4', // Cyan accent
+  primary: '#8B5CF6', // Purple primary (stay main)
+  secondary: '#FF3A44', // Red for sells/negative
+  tertiary: '#06B6D4', // Cyan accent
+  neonGreen: '#22D3EE', // Neon cyan-blue
+  neonBlue: '#00E5FF', // Neon blue
+  neonLime: '#32D583', // Neon green (lime)
 
     // Backgrounds - Dark theme
     background: '#0D1421', // Main dark background
@@ -61,7 +27,7 @@ export const theme = {
     onSurfaceVariant: '#8B9BB4', // Gray text
 
     // Status colors
-    success: '#8B5CF6', // Purple for success
+  success: '#32D583', // Neon lime for success
     error: '#FF3A44', // Red for errors
     warning: '#FFA726', // Orange warning
 
@@ -70,7 +36,7 @@ export const theme = {
     outlineVariant: '#1F2937', // Darker border
 
     // Custom colors
-    bullish: '#8B5CF6', // Purple for gains
+  bullish: '#32D583', // Neon lime for gains
     bearish: '#FF3A44', // Red for losses
     neutral: '#8B9BB4', // Gray for neutral
 
@@ -91,17 +57,17 @@ export const theme = {
     liveInactive: '#8B9BB4', // Inactive gray
 
     // Price movement colors
-    priceUp: '#8B5CF6', // Price increase
+  priceUp: '#32D583', // Price increase (neon lime)
     priceDown: '#FF3A44', // Price decrease
     priceStable: '#8B9BB4', // No change
 
     // Portfolio colors
-    portfolioPositive: '#8B5CF6', // Positive P&L
+  portfolioPositive: '#32D583', // Positive P&L
     portfolioNegative: '#FF3A44', // Negative P&L
     portfolioNeutral: '#8B9BB4', // Break even
 
     // Action colors
-    buyButton: '#8B5CF6', // Buy button
+  buyButton: '#32D583', // Buy button (stands out from purple)
     sellButton: '#FF3A44', // Sell button
     disabledButton: '#2C3A4B', // Disabled state
 
