@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { apiService } from '../services/api';
 import { io, Socket } from 'socket.io-client';
 import Constants from 'expo-constants';
 
@@ -69,6 +70,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [marketImpacts, setMarketImpacts] = useState<any[]>([]);
   const [volumeAlerts, setVolumeAlerts] = useState<any[]>([]);
   const [marketSentiment, setMarketSentiment] = useState<any | null>(null);
+  // Keep a ref to current liveGames for event handlers
+  const liveGamesRef = useRef<LiveGame[]>([]);
+  useEffect(() => { liveGamesRef.current = liveGames; }, [liveGames]);
 
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const reconnectAttempts = useRef(0);
@@ -91,15 +95,50 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Fallback: Ensure we always have a liveGame set
+  const ensureLiveGame = async (reason: string) => {
+    try {
+      console.log(`🛟 ensureLiveGame invoked (${reason}). Current liveGame:`, liveGame);
+      if (liveGame) return;
+      // Try REST API first
+      const resp = await apiService.getCurrentGame();
+      if (resp?.success && resp.data) {
+        console.log('🛟 ensureLiveGame: using REST current game:', resp.data);
+        setLiveGames([resp.data]);
+        setLiveGame(resp.data);
+        return;
+      }
+    } catch (e) {
+      console.warn('🛟 ensureLiveGame REST failed:', e);
+    }
+    // Hardcoded demo as last resort
+    const demo: LiveGame = {
+      id: 'demo-1',
+      homeTeam: 'LAL',
+      awayTeam: 'BOS',
+      homeScore: 0,
+      awayScore: 0,
+      quarter: 1,
+      timeRemaining: '12:00',
+      isActive: true,
+      startTime: Date.now(),
+      activePlayers: [],
+    };
+    console.log('🛟 ensureLiveGame: setting DEMO liveGame fallback:', demo);
+    setLiveGames([demo]);
+    setLiveGame(demo);
+  };
+
   const connectSocket = () => {
     if (isConnectingRef.current) return;
     
     isConnectingRef.current = true;
     console.log('🔌 Connecting to socket server:', SOCKET_URL);
 
-    const newSocket = io(SOCKET_URL, {
-      path: '/socket.io/',
-      transports: ['polling', 'websocket'],
+    // First try pure websocket to avoid xhr polling issues on some hosts
+    const primaryOpts = {
+      path: '/socket.io', // no trailing slash to match server default
+      transports: ['websocket' as const],
       timeout: 30000,
       forceNew: true,
       reconnection: true,
@@ -107,7 +146,12 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       autoConnect: true,
-    });
+      upgrade: true,
+      withCredentials: false,
+    };
+
+    console.log('🔧 Socket options:', primaryOpts);
+    let newSocket = io(SOCKET_URL, primaryOpts);
 
     // Global event logger for debugging
     newSocket.onAny((event, ...args) => {
@@ -128,6 +172,15 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       console.log('🌐 URL:', SOCKET_URL);
       setIsConnected(true);
       reconnectAttempts.current = 0;
+      // Proactively join and request live games
+      try {
+        newSocket.emit('join_live_trading');
+        newSocket.emit('request_live_games'); // if backend supports; harmless otherwise
+      } catch (e) {
+        console.warn('⚠️ emit on connect failed:', e);
+      }
+      // Also ensure we have a live game via REST fallback
+      ensureLiveGame('on-connect');
     });
 
     newSocket.on('disconnect', (reason) => {
@@ -143,7 +196,26 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     });
 
     newSocket.on('connect_error', (error) => {
-      console.error('❌ Socket connection error:', error);
+      console.error('❌ Socket connection error:', error?.message || error);
+      // If xhr poll error occurred, retry once with mixed transports
+      const msg = (error && (error as any).message) || '';
+      if (msg.includes('xhr poll error') || msg.includes('polling') || msg.includes('transport error')) {
+        try {
+          console.log('🔁 Retrying socket connect with mixed transports...');
+          try { newSocket.removeAllListeners(); } catch {}
+          try { newSocket.disconnect(); } catch {}
+          const fallbackOpts = {
+            ...primaryOpts,
+            transports: ['websocket', 'polling' as const],
+          };
+          console.log('🔧 Fallback socket options:', fallbackOpts);
+          newSocket = io(SOCKET_URL, fallbackOpts);
+          attachListeners(newSocket);
+          return;
+        } catch (e) {
+          console.warn('Fallback connect failed to initialize:', e);
+        }
+      }
       setIsConnected(false);
       handleReconnect();
     });
@@ -279,8 +351,36 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
       // Update selected liveGame
       setLiveGame(prev => {
-        if (!prev) return prev;
+        // If we don't have a liveGame yet OR it's a demo, adopt the update
+        const isDemo = prev && typeof prev.id === 'string' && prev.id.startsWith('demo');
+        if (!prev || isDemo) {
+          const fromList = data.gameId ? liveGamesRef.current.find(g => g.id === data.gameId) : (liveGamesRef.current[0] || null);
+          if (fromList) {
+            return {
+              ...fromList,
+              homeScore: data.homeScore,
+              awayScore: data.awayScore,
+              quarter: data.quarter,
+              timeRemaining: data.timeRemaining,
+            };
+          }
+          // Synthesize minimal object if not found
+          return {
+            id: data.gameId || (prev?.id || 'unknown'),
+            homeTeam: prev?.homeTeam || 'HOME',
+            awayTeam: prev?.awayTeam || 'AWAY',
+            homeScore: data.homeScore,
+            awayScore: data.awayScore,
+            quarter: data.quarter,
+            timeRemaining: data.timeRemaining,
+            isActive: true,
+            startTime: prev?.startTime || Date.now(),
+            activePlayers: prev?.activePlayers || [],
+          } as LiveGame;
+        }
+        // If update belongs to a different game than the one selected, ignore
         if (data.gameId && prev.id !== data.gameId) return prev;
+        // Normal update path
         return {
           ...prev,
           homeScore: data.homeScore,
@@ -319,9 +419,119 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       console.log('📊 Trading Activity:', activity.playerName);
     });
 
+    // Helper to reattach listeners when we rebuild the socket with fallback
+    function attachListeners(sock: typeof newSocket) {
+      // Global event logger for debugging
+      sock.onAny((event, ...args) => {
+        console.log(`[Socket] Event: ${event}`, ...args);
+      });
+
+      sock.on('connect', () => {
+        console.log('✅ Socket connected:', sock.id);
+        console.log('🔌 Transport:', sock.io.engine.transport.name);
+        console.log('🌐 URL:', SOCKET_URL);
+        setIsConnected(true);
+        reconnectAttempts.current = 0;
+        try {
+          sock.emit('join_live_trading');
+          sock.emit('request_live_games');
+        } catch (e) {
+          console.warn('⚠️ emit on connect failed:', e);
+        }
+        ensureLiveGame('on-connect');
+      });
+
+      sock.on('disconnect', (reason) => {
+        console.log('❌ Socket disconnected:', reason);
+        setIsConnected(false);
+        hasJoinedRoomRef.current = false;
+        handleReconnect();
+      });
+
+      sock.on('connect_error', (error) => {
+        console.error('❌ Socket connection error (fallback):', (error as any)?.message || error);
+        setIsConnected(false);
+        handleReconnect();
+      });
+
+      // Re-bind all data listeners for fallback socket
+      sock.on('live_game', (game: LiveGame) => {
+        console.log('[Socket] live_game received:', game);
+        setLiveGames([game]);
+        setLiveGame(game);
+      });
+      sock.on('price_update', (data) => {
+        setPriceUpdates(prev => { const m = new Map(prev); m.set(data.playerId, { price: data.price, change: data.change, changePercent: data.changePercent }); return m; });
+      });
+      sock.on('flash_multiplier', (data: FlashMultiplier) => {
+        setFlashMultipliers(prev => { const m = new Map(prev); m.set(data.playerId, data); return m; });
+        setTimeout(() => setFlashMultipliers(prev => { const m = new Map(prev); m.delete(data.playerId); return m; }), data.duration);
+      });
+      sock.on('flash_multiplier_expired', (data: { playerId: string }) => {
+        setFlashMultipliers(prev => { const m = new Map(prev); m.delete(data.playerId); return m; });
+      });
+      sock.on('game_event', (event) => setGameEvents(prev => [event, ...prev].slice(0, MAX_GAME_EVENTS)));
+      sock.on('leaderboard_update', (data) => setLeaderboard(data.leaderboard));
+      sock.on('chat_message', (message) => setChatMessages(prev => [...prev, message].slice(-MAX_CHAT_MESSAGES)));
+      sock.on('market_data', (data) => setMarketData(data));
+      sock.on('notification', (n) => setNotifications(prev => [n, ...prev].slice(0, MAX_NOTIFICATIONS)));
+      sock.on('user_count', (count) => setUserCount(count));
+      sock.on('trade_executed', (trade) => console.log('💰 Trade executed:', trade));
+      sock.on('portfolio_update', (portfolio) => console.log('💼 Portfolio updated:', portfolio));
+      sock.on('pong', (data: { timestamp: number }) => console.log('🏓 Pong received, latency:', Date.now() - data.timestamp, 'ms'));
+      sock.on('live_games', (games: LiveGame[]) => {
+        console.log('[Socket] live_games received:', games);
+        setLiveGames(games);
+        if (games.length > 0 && (!liveGame || !games.some(g => g.id === liveGame.id))) {
+          setLiveGame(games[0]);
+          console.log('[Socket] liveGame set to:', games[0]);
+        } else {
+          console.log('[Socket] liveGame remains:', liveGame);
+        }
+      });
+      sock.on('game_score_update', (data) => {
+        console.log('🏀 [Frontend] game_score_update received (fallback):', data);
+        setLiveGames(prevGames => {
+          if (data.gameId) {
+            return prevGames.map(game => game.id === data.gameId ? { ...game, homeScore: data.homeScore, awayScore: data.awayScore, quarter: data.quarter, timeRemaining: data.timeRemaining } : game);
+          }
+          if (prevGames.length > 0) {
+            const idx = liveGame ? prevGames.findIndex(g => g.id === liveGame.id) : 0;
+            const targetIndex = idx >= 0 ? idx : 0;
+            const updated = [...prevGames];
+            updated[targetIndex] = { ...updated[targetIndex], homeScore: data.homeScore, awayScore: data.awayScore, quarter: data.quarter, timeRemaining: data.timeRemaining } as any;
+            return updated;
+          }
+          return prevGames;
+        });
+        // Reuse adoption logic from above
+        setLiveGame(prev => {
+          const isDemo = prev && typeof prev.id === 'string' && prev.id.startsWith('demo');
+          if (!prev || isDemo) {
+            const fromList = data.gameId ? liveGamesRef.current.find(g => g.id === data.gameId) : (liveGamesRef.current[0] || null);
+            if (fromList) {
+              return { ...fromList, homeScore: data.homeScore, awayScore: data.awayScore, quarter: data.quarter, timeRemaining: data.timeRemaining };
+            }
+            return { id: data.gameId || (prev?.id || 'unknown'), homeTeam: prev?.homeTeam || 'HOME', awayTeam: prev?.awayTeam || 'AWAY', homeScore: data.homeScore, awayScore: data.awayScore, quarter: data.quarter, timeRemaining: data.timeRemaining, isActive: true, startTime: prev?.startTime || Date.now(), activePlayers: prev?.activePlayers || [] } as LiveGame;
+          }
+          if (data.gameId && prev.id !== data.gameId) return prev;
+          return { ...prev, homeScore: data.homeScore, awayScore: data.awayScore, quarter: data.quarter, timeRemaining: data.timeRemaining };
+        });
+        if (data.lastScore) console.log(`🏀 ${data.lastScore.teamName} scores ${data.lastScore.points} points!`);
+      });
+    }
+
     // Set socket after all event listeners are attached
     setSocket(newSocket);
     isConnectingRef.current = false;
+    // Attach listeners to primary socket
+    attachListeners(newSocket);
+    // Schedule a delayed fallback if still no live game after socket setup
+    setTimeout(() => {
+      if (!liveGame) {
+        ensureLiveGame('post-connect-timeout');
+      }
+    }, 2000);
   };
 
   const handleReconnect = () => {
