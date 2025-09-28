@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authService, LoginCredentials, RegisterCredentials } from '../services/authService';
 import { ApiResponse } from '../types';
+import { supabase } from '../config/supabase';
 
 const router = Router();
 
@@ -60,6 +61,23 @@ router.post('/login', async (req: Request, res: Response) => {
 
 // Get current user (if authenticated)
 router.get('/me', async (req: Request, res: Response) => {
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      error: 'User not found',
+      message: 'User associated with token not found'
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    user,
+    message: 'User retrieved successfully'
+  });
+
+  /*
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -100,6 +118,7 @@ router.get('/me', async (req: Request, res: Response) => {
     
     res.status(401).json(response);
   }
+    */
 });
 
 // Quick login for demo (bypasses password)
