@@ -50,6 +50,8 @@ export default function MarketDashboard() {
     playerName: string;
     eventType: string;
   }>({ visible: false, multiplier: 0, playerName: '', eventType: '' });
+  // Store portfolio history for consistent graph
+  const [portfolioHistory, setPortfolioHistory] = useState<{ labels: string[]; values: number[] }>({ labels: [], values: [] });
 
   useEffect(() => {
     // Auto-join socket room with demo user
@@ -57,6 +59,13 @@ export default function MarketDashboard() {
       joinRoom('user-1', 'DemoUser');
     }
   }, [isConnected]);
+
+  // Update portfolio when price updates are received
+  useEffect(() => {
+    if (isConnected && priceUpdates) {
+      refreshPortfolio();
+    }
+  }, [priceUpdates]);
 
   // Handle flash multipliers
   useEffect(() => {
@@ -125,26 +134,31 @@ export default function MarketDashboard() {
     .sort((a, b) => a.priceChangePercent24h - b.priceChangePercent24h)
     .slice(0, 3);
 
-  const generatePortfolioHistory = () => {
-    const currentValue = portfolio?.totalValue || 10000;
-    const days = 7;
-    const labels = [];
-    const values = [];
-
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      labels.push(i === 0 ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'short' }));
-
-      const variance = (Math.random() - 0.5) * 0.1;
-      const dayValue = currentValue * (1 - (i * 0.02) + variance);
-      values.push(Math.round(dayValue / 1000));
+  // Generate consistent portfolio history based on actual data
+  useEffect(() => {
+    if (portfolio) {
+      // If portfolio has a history array, use it. Otherwise, fallback to static values.
+      // Example: portfolio.history = [{date: '2025-09-22', value: 10500}, ...]
+      let labels: string[] = [];
+      let values: number[] = [];
+      if (portfolio.history && Array.isArray(portfolio.history)) {
+        portfolio.history.slice(-7).forEach((entry, idx, arr) => {
+          const date = new Date(entry.date);
+          labels.push(idx === arr.length - 1 ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'short' }));
+          values.push(entry.value);
+        });
+      } else {
+        // Fallback: use current value for all days
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          labels.push(i === 0 ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'short' }));
+          values.push(portfolio.totalValue || 10000);
+        }
+      }
+      setPortfolioHistory({ labels, values });
     }
-
-    return { labels, values };
-  };
-
-  const portfolioHistory = generatePortfolioHistory();
+  }, [portfolio]);
 
   if (loading && !portfolio) {
     return (
@@ -223,7 +237,7 @@ export default function MarketDashboard() {
               <Surface style={styles.chartCard}>
                 <PortfolioChart
                   data={portfolioHistory}
-                  title="7-Day Performance"
+                  title="Market Day Performance"
                 />
               </Surface>
             </View>
@@ -252,8 +266,16 @@ export default function MarketDashboard() {
                     {topGainers.map(player => (
                       <Surface key={player.id} style={styles.moverCard}>
                         <View style={styles.moverContent}>
-                          <Text style={styles.moverName} numberOfLines={1}>{player.name}</Text>
-                          <Text style={[styles.moverChange, { color: theme.colors.bullish }]}>
+                          <Text
+                            style={styles.moverName}
+                            numberOfLines={1}
+                            onPress={() => handlePlayerPress(player)}
+                          >
+                            {player.name}
+                          </Text>
+                          <Text style={[styles.moverChange, { color: theme.colors.bullish }]}
+                            onPress={() => handlePlayerPress(player)}
+                          >
                             +{formatPercent(player.priceChangePercent24h)}
                           </Text>
                         </View>
@@ -265,8 +287,16 @@ export default function MarketDashboard() {
                     {topLosers.map(player => (
                       <Surface key={player.id} style={styles.moverCard}>
                         <View style={styles.moverContent}>
-                          <Text style={styles.moverName} numberOfLines={1}>{player.name}</Text>
-                          <Text style={[styles.moverChange, { color: theme.colors.bearish }]}>
+                          <Text
+                            style={styles.moverName}
+                            numberOfLines={1}
+                            onPress={() => handlePlayerPress(player)}
+                          >
+                            {player.name}
+                          </Text>
+                          <Text style={[styles.moverChange, { color: theme.colors.bearish }]}
+                            onPress={() => handlePlayerPress(player)}
+                          >
                             {formatPercent(player.priceChangePercent24h)}
                           </Text>
                         </View>
@@ -310,20 +340,51 @@ export default function MarketDashboard() {
           onConfirmTrade={handleConfirmTrade}
         />
 
-        {/* Flash Multiplier */}
-        <FlashMultiplier
-          visible={flashMultiplier.visible}
-          multiplier={flashMultiplier.multiplier}
-          playerName={flashMultiplier.playerName}
-          eventType={flashMultiplier.eventType}
-          onComplete={() => setFlashMultiplier(prev => ({ ...prev, visible: false }))}
-        />
+        {/* Flash Multiplier Banner Notification */}
+        {flashMultiplier.visible && (
+          <View style={styles.flashBanner}>
+            <Text style={styles.flashBannerText}>
+              🚀 Big Play! {flashMultiplier.playerName} x{flashMultiplier.multiplier} multiplier!
+            </Text>
+            <Button
+              mode="text"
+              onPress={() => setFlashMultiplier(prev => ({ ...prev, visible: false }))}
+              style={styles.flashBannerClose}
+              labelStyle={{ color: theme.colors.primary }}
+            >
+              Dismiss
+            </Button>
+          </View>
+        )}
       </LinearGradient>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  flashBanner: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 10,
+    elevation: 10,
+  },
+  flashBannerText: {
+    color: theme.colors.onPrimary,
+    fontWeight: 'bold',
+    fontSize: 16,
+    flex: 1,
+  },
+  flashBannerClose: {
+    marginLeft: 16,
+  },
   container: {
     flex: 1,
   },
