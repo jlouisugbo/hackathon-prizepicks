@@ -54,7 +54,6 @@ export default function LiveTradingScreen() {
     }
   }, [isConnected]);
 
-  // Handle flash multipliers
   useEffect(() => {
     if (flashMultipliers.size > 0) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
